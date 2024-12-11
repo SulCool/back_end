@@ -1,0 +1,61 @@
+@import "button.css";
+@import "dropdown.css";
+@import "text.css";
+@import "modal_window.css";
+@import "dialog.css";
+@import "card.css";
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+main {
+    text-align: left;
+}
+
+body {
+    background-color: #313131;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.171) 2px, transparent 0);
+    background-size: 30px 30px;
+    background-position: -5px -5px;
+    color: #fff;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.main {
+    border: 1.5px solid #d87236;
+    border-radius: 10px;
+    background-color: #2e2e2e;
+}
+
+.main_header {
+    border-bottom: #d87236 1.5px solid;
+    padding: 10px;
+}
+
+.main_body {
+    padding: 10px;
+}
+
+
+.filter-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    justify-content: flex-end;
+}
+

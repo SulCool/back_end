@@ -1,0 +1,10 @@
+.text-black {
+    color: black;
+}
+
+.text-font {
+    font-family: "Montserrat", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: weight;
+    font-style: normal;
+}

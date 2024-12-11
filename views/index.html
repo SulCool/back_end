@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Manager</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <script src="/js/modal.js"></script>
+  <script src="/js/dialog.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+    rel="stylesheet">
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <a href="/add"class="add-btn text-font">
+        Добавить
+      </a>
+      <div class="profile-icon">
+        <img src="/icons/icon.png" class="profile-img">
+        <div class="modal">
+          <div class="modal-content">
+            <span class="close"></span>
+            <a href="/profile" class="text-font text-black">Профиль</a>
+            <a href="/log_sign" class="text-font text-black">Сменить Профиль</a>
+            <a class="text-font text-black">Выйти</a>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="main">
+      <div class="main_header">
+        <button class="btn" id="open_add_dialog">
+          <span class="transition"></span>
+          <span class="gradient"></span>
+          <span class="label text-font">Добавить</span>
+        </button>
+        <div id="add_dialog" class="dialog">
+          <div class="dialog-content">
+            <span class="close-btn" id="close_add_dialog">&times;</span>
+            <p class="text-font text-black">Добавить задачу</p>
+            <input type="text" placeholder="Введите имя" class="text-input">
+            <textarea placeholder="Введите описание" class="text-input"></textarea>>
+            <input type="text" placeholder="Введите срок задачи" class="text-input">
+            <input type="text" placeholder="Введите для кого" class="text-input">
+            <button class="btn">
+              <span class="transition"></span>
+              <span class="gradient"></span>
+              <span class="label text-font">Добавить</span>
+            </button>
+          </div>
+        </div>
+        <p class="text-font">Ваши задачи:</p>
+      </div>
+      <div class="main_body">
+        <div class="filter-container">
+          <div class="dropdown">
+            <div class="dropbtn selector">
+              <div class="text-font text-black">От кого?</div>
+            </div>
+            <div class="dropdown-content">
+              <a class="text-font">Ссылка 1</a>
+              <a class="text-font">Ссылка 2</a>
+              <a class="text-font">Ссылка 3</a>
+            </div>
+          </div>
+          <div class="dropdown">
+            <img src="/icons/sort.png" class="dropbtn">
+            <div class="dropdown-content">
+              <div class="text-font">
+                <a>Ссылка 1</a>
+                <a>Ссылка 2</a>
+                <a>Ссылка 3</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="buttons-container button">
+          <div class="card">
+            <div class="info">
+              <p class="title text-font">How to make this material card ?</p>
+              <p class="text-font">Lorem ipsum dolor sit amet consectetur adipisicing elit. Maxime mollitia,
+            molestiae quas vel sint commodi. </p>
+            </div>
+            <div class="footer">
+              
+              <p class="text-font">Срок: </p>
+              
+            </div>
+            <div class="footer">
+              <p class="text-font">Дата начала: </p>
+            </div>
+            <div class="footer">
+              <button type="button" class="btn">
+                <span class="transition"></span>
+                <span class="gradient"></span>
+                <span class="label text-font">Взять</span>
+              </button>
+              <button class="btn">
+                <span class="transition"></span>
+                <span class="gradient"></span>
+                <span class="label text-font">Завершить</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+</body>
+
+</html>

@@ -17,20 +17,22 @@
 <body>
     <div class="container">
         <header>
-            <a href="/add" class="add-btn text-font">
-                Добавить
-            </a>
-            <div class="profile-icon">
-                <img src="/icons/icon.png" class="profile-img">
-                <div class="modal">
-                    <div class="modal-content">
-                        <span class="close"></span>
-                        <a href="/profile" class="text-font text-black">Профиль</a>
-                        <a href="/log_sign" class="text-font text-black">Сменить Профиль</a>
-                        <a class="text-font text-black">Выйти</a>
+            <% if (currentUser.Role === 'Admin') { %>
+                <a href="/add" class="add-btn text-font">
+                    Добавить
+                </a>
+            <% } %>
+                    <div class="profile-icon">
+                        <img src="/icons/icon.png" class="profile-img">
+                        <div class="modal">
+                            <div class="modal-content">
+                                <span class="close"></span>
+                                <a href="/profile" class="text-font text-black">Профиль</a>
+                                <a href="/log_sign" class="text-font text-black">Сменить Профиль</a>
+                                <a href="/logout" class="text-font text-black">Выйти</a>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
         </header>
         <main class="main">
             <div class="main_header">
@@ -45,14 +47,22 @@
                         <div class="dialog-content">
                             <span class="close-btn" id="close_add_dialog">&times;</span>
                             <p class="text-font text-black">Добавить задачу</p>
-                            <input name="name" type="text" placeholder="Введите имя" class="text-input">
-                            <textarea name="description" placeholder="Введите описание" class="text-input"></textarea>>
-                            <input name="date" type="text" placeholder="Введите дату" class="text-input">
-                            <input name="deadline" type="text" placeholder="Введите срок сдачи" class="text-input">
-                            <select class="selector2 text-black text-font">
+                            <input name="title" type="text" placeholder="Введите имя" class="text-input">
+                            <textarea name="description" placeholder="Введите описание" class="text-input"></textarea>
+                            <input type="datetime-local" id="meeting-time" name="meeting-time"
+                                value="<%= (new Date()).toLocaleString() %>"
+                                min="<%= (new Date()).toLocaleString() %>" />
+                            <input type="datetime-local" id="meeting-time" name="meeting-time"
+                                value="<%= (new Date()).toLocaleString() %>"
+                                min="<%= (new Date()).toLocaleString() %>" />
+                            <select name="name" class="selector2 text-black text-font">
                                 <% for(let i of users) { %>
-                                    <option class="text-font text-black"><%= i.surname %> <%= i.name %> <%= i.patronymic %></option>
-                                <% } %>
+                                    <option class="text-font text-black">
+                                        <%= i.surname %>
+                                            <%= i.name %>
+                                                <%= i.patronymic %>
+                                    </option>
+                                    <% } %>
                             </select>
                             <button class="btn" type="submit">
                                 <span class="transition"></span>
@@ -65,12 +75,16 @@
             </div>
             <div class="main_body">
                 <div class="filter-container">
-                <select class="dropbtn selector text-black text-font">
-                    <option class="text-font selector1 text-white"> Все </option>
-                    <% for(let i of users) { %>
-                        <option class="text-font selector1 text-white"><%= i.surname %> <%= i.name %> <%= i.patronymic %></option>
-                    <% } %>
-                </select>
+                    <select class="dropbtn selector text-black text-font">
+                        <option class="text-font selector1 text-white"> Все </option>
+                        <% for(let i of users) { %>
+                            <option class="text-font selector1 text-white">
+                                <%= i.surname %>
+                                    <%= i.name %>
+                                        <%= i.patronymic %>
+                            </option>
+                            <% } %>
+                    </select>
                     <div class="dropdown">
                         <img src="/icons/sort.png" class="dropbtn">
                         <div class="dropdown-content">

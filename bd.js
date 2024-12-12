@@ -1,10 +1,28 @@
-const sqlite3 = require('sqlite3').verbose();
+import sqlite3 from "sqlite3";
 let sql;
 
 //connect db
 const db = new sqlite3.Database("./main.db", sqlite3.OPEN_READWRITE, (err) => {
     if(err) return console.error(err.message);
 });
+
+export function get_users(query, params, callback) {
+    db.all(query, params, (err, rows) => {
+        if (err) {
+            return callback(err, null);
+        }
+        callback(null, rows);
+    });
+}
+
+export function add_user(name = "name", surname = "surname", patronymic = "patronymic", login = "login", role = "role", post = "post") {
+    sql = "INSERT INTO users(Login, Surname, Name, Patronymic, Role, Post) VALUES(?, ?, ?, ?, ?, ?)";
+    db.run(sql, [login, surname, name, patronymic, role, post],
+        (err) => {
+            if (err) return console.error(err.message);
+        }
+    );
+}
 
 
 //update

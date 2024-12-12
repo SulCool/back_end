@@ -43,6 +43,12 @@
                     <label for="patronymic" class="text-font">Отчество</label>
                     <input type="text" id="patronymic" name="patronymic" placeholder="Введите отчество">
                 </div>
+                <% if (error) { %>
+                <div class="form-group">
+                    <label for="error" class="text-font">Ошибка</label>
+                    <input id="error" name="error"><%= error %></label>
+                </div>
+                <% } %>
                 <button class="form-submit-btn btn" type="submit">
                     <span class="transition"></span>
                     <span class="gradient"></span>

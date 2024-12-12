@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const app = express();
 const PORT = 3000;
@@ -10,14 +8,13 @@ app.use(express.static(__dirname + "/public"));
 app.set('view engine', 'ejs');
 app.set('views', __dirname + "/views");
 
-
-
-
 app.get("/", (req, res) => {
     const tasks = [{title:"title",description:"description",deadline:"deadline",date:"date"}];
     res.render("main", {tasks:tasks});
 });
-
+app.get("/edit", (_, response) => {
+    response.sendFile(__dirname + "/views/edit.html");
+});
 app.get("/add", (_, response) => {
     response.sendFile(__dirname + "/views/add.html");
 });

@@ -32,10 +32,21 @@
 
 .selector {
     padding: 1px;
-    padding-right: 200px;
+    padding-right: 100px;
     border: 1.5px solid #956842;
     border-radius: 20px;
     background-color: #956842;
     color: #fff;
     font-size: medium;
+}
+
+.selector1 {
+    background-color:#272727 ;
+    border: none;
+}
+
+.selector2 {
+    position:flex;
+    border: none;
+    margin-bottom: 40px;
 }

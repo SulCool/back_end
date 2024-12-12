@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <script src="/js/modal.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <a href="/edits" class="add-btn text-font">
+                Изменить
+            </a>
+            <div class="profile-icon">
+                <img src="/icons/icon.png" class="profile-img">
+                <div class="modal">
+                    <div class="modal-content">
+                        <span class="close"></span>
+                        <a href="/" class="text-font text-black">Задачи</a>
+                        <a href="/log_sign" class="text-font text-black">Сменить Профиль</a>
+                        <a href="/profile" class="text-font text-black">Выйти</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <main class="main">
+            <div class="main_header">
+                <p class="text-font">Ваш профиль</p>
+            </div>
+            
+            <div class="main_body">
+                <P class="text-font">ФИО: <%= user.name %>.</P>
+                <P class="text-font">Роль: <%= user.role %>.</P>
+                <P class="text-font">Должности: <%= user.post %>.</P>
+            </div>
+    </div>
+    </main>
+    </div>
+</body>
+
+</html>

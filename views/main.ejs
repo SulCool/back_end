@@ -39,36 +39,38 @@
                     <span class="gradient"></span>
                     <span class="label text-font">Добавить</span>
                 </button>
+
                 <div id="add_dialog" class="dialog">
-                    <div class="dialog-content">
-                        <span class="close-btn" id="close_add_dialog">&times;</span>
-                        <p class="text-font text-black">Добавить задачу</p>
-                        <input type="text" placeholder="Введите имя" class="text-input">
-                        <textarea placeholder="Введите описание" class="text-input"></textarea>>
-                        <input type="text" placeholder="Введите дату" class="text-input">
-                        <input type="text" placeholder="Введите срок сдачи" class="text-input">
-                        <input type="text" placeholder="Введите для кого" class="text-input">
-                        <button class="btn">
-                            <span class="transition"></span>
-                            <span class="gradient"></span>
-                            <span class="label text-font">Добавить</span>
-                        </button>
-                    </div>
+                    <form action="/add_task" method="post">
+                        <div class="dialog-content">
+                            <span class="close-btn" id="close_add_dialog">&times;</span>
+                            <p class="text-font text-black">Добавить задачу</p>
+                            <input name="name" type="text" placeholder="Введите имя" class="text-input">
+                            <textarea name="description" placeholder="Введите описание" class="text-input"></textarea>>
+                            <input name="date" type="text" placeholder="Введите дату" class="text-input">
+                            <input name="deadline" type="text" placeholder="Введите срок сдачи" class="text-input">
+                            <select class="selector2 text-black text-font">
+                                <% for(let i of users) { %>
+                                    <option class="text-font text-black"><%= i.surname %> <%= i.name %> <%= i.patronymic %></option>
+                                <% } %>
+                            </select>
+                            <button class="btn" type="submit">
+                                <span class="transition"></span>
+                                <span class="gradient"></span>
+                                <span class="label text-font">Добавить</span>
+                            </button>
+                        </div>
                 </div>
                 <p class="text-font">Ваши задачи:</p>
             </div>
             <div class="main_body">
                 <div class="filter-container">
-                    <div class="dropdown">
-                        <div class="dropbtn selector">
-                            <div class="text-font text-black">От кого?</div>
-                        </div>
-                        <div class="dropdown-content">
-                            <a class="text-font">Ссылка 1</a>
-                            <a class="text-font">Ссылка 2</a>
-                            <a class="text-font">Ссылка 3</a>
-                        </div>
-                    </div>
+                <select class="dropbtn selector text-black text-font">
+                    <option class="text-font selector1 text-white"> Все </option>
+                    <% for(let i of users) { %>
+                        <option class="text-font selector1 text-white"><%= i.surname %> <%= i.name %> <%= i.patronymic %></option>
+                    <% } %>
+                </select>
                     <div class="dropdown">
                         <img src="/icons/sort.png" class="dropbtn">
                         <div class="dropdown-content">
@@ -82,33 +84,37 @@
                 </div>
                 <div class="buttons-container button">
                     <% for(let i of tasks) { %>
-                    <div class="card">
-                        <div class="info">
-                            <p class="title text-font"><%= i.title %></p>
-                            <p class="text-font"><%= i.description %> </p>
+                        <div class="card">
+                            <div class="info">
+                                <p class="title text-font">
+                                    <%= i.title %>
+                                </p>
+                                <p class="text-font">
+                                    <%= i.description %>
+                                </p>
+                            </div>
+                            <div class="footer">
+                                <p class="text-font">Срок: <%= i.deadline %>
+                                </p>
+                            </div>
+                            <div class="footer">
+                                <p class="text-font">Дата начала: <%= i.date %>
+                                </p>
+                            </div>
+                            <div class="footer">
+                                <button type="button" class="btn">
+                                    <span class="transition"></span>
+                                    <span class="gradient"></span>
+                                    <span class="label text-font">Взять</span>
+                                </button>
+                                <button class="btn">
+                                    <span class="transition"></span>
+                                    <span class="gradient"></span>
+                                    <span class="label text-font">Завершить</span>
+                                </button>
+                            </div>
                         </div>
-                        <div class="footer">
-
-                            <p class="text-font">Срок: <%= i.deadline %></p>
-
-                        </div>
-                        <div class="footer">
-                            <p class="text-font">Дата начала: <%= i.date %> </p>
-                        </div>
-                        <div class="footer">
-                            <button type="button" class="btn">
-                                <span class="transition"></span>
-                                <span class="gradient"></span>
-                                <span class="label text-font">Взять</span>
-                            </button>
-                            <button class="btn">
-                                <span class="transition"></span>
-                                <span class="gradient"></span>
-                                <span class="label text-font">Завершить</span>
-                            </button>
-                        </div>
-                    </div>
-                    <% } %>
+                        <% } %>
                 </div>
             </div>
         </main>

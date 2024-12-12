@@ -14,38 +14,38 @@
     <div class="display-container">
         <div class="form-container">
             <div class="logo-container text-font">
-                Создать пользователя
+                Изменить пользователя
             </div>
 
             <form class="form" method="post">
                 <div class="form-group">
-                    <label for="login" class="text-font">Логин</label>
-                    <input type="text" id="login" name="login" placeholder="Введите логин">
+                    <label for="login" class="text-font">Новый логин</label>
+                    <input type="text" id="login" name="login" placeholder="Введите логин" value="<%= user.login %>">
                 </div>
                 <label class="checkbox-container">
-                    <input name="role" class="custom-checkbox" checked="" type="checkbox">
+                    <input class="custom-checkbox" checked="" type="checkbox" value="<%= user.role %>">
                     <span class="checkmark"></span>Adm
                 </label>   
                 <div class="form-group">
-                    <label for="post" class="text-font">Должность</label>
-                    <input type="text" id="post" name="post" placeholder="Введите должность">
+                    <label for="post" class="text-font">Новая должность</label>
+                    <input type="text" id="post" name="post"  placeholder="Введите должность" value="<%= user.post %>">
                 </div>
                 <div class="form-group">
                     <label for="surname" class="text-font">Фамилия</label>
-                    <input type="text" id="surname" name="surname" placeholder="Введите фамилию">
+                    <input type="text" id="surname" name="surname"  placeholder="Введите фамилию" value="<%= user.surname %>" >
                 </div>
                 <div class="form-group">
                     <label for="name" class="text-font">Имя</label>
-                    <input type="text" id="name" name="name" placeholder="Введите имя">
+                    <input type="text" id="name" name="name"  placeholder="Введите имя" value="<%= user.name %>">
                 </div>
                 <div class="form-group">
                     <label for="patronymic" class="text-font">Отчество</label>
-                    <input type="text" id="patronymic" name="patronymic" placeholder="Введите отчество">
+                    <input type="text" id="patronymic" name="patronymic" placeholder="Введите отчество" value="<%= user.patronymic %>">
                 </div>
                 <button class="form-submit-btn btn" type="submit">
                     <span class="transition"></span>
                     <span class="gradient"></span>
-                    <span class="label text-font">Создать</span>
+                    <span class="label text-font">Изменить</span>
                 </button>
             </form>
         </div>

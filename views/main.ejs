@@ -17,11 +17,11 @@
 <body>
     <div class="container">
         <header>
-            <% if (currentUser.Role === 'Admin') { %>
+            <% if (currentUser.Role==='Admin' ) { %>
                 <a href="/add" class="add-btn text-font">
                     Добавить
                 </a>
-            <% } %>
+                <% } %>
                     <div class="profile-icon">
                         <img src="/icons/icon.png" class="profile-img">
                         <div class="modal">
@@ -29,7 +29,6 @@
                                 <span class="close"></span>
                                 <a href="/profile" class="text-font text-black">Профиль</a>
                                 <a href="/log_sign" class="text-font text-black">Сменить Профиль</a>
-                                <a href="/logout" class="text-font text-black">Выйти</a>
                             </div>
                         </div>
                     </div>

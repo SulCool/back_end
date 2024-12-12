@@ -24,7 +24,6 @@ export function add_user(name = "name", surname = "surname", patronymic = "patro
     );
 }
 
-
 //update
 // sql = "UPDATE users SET name = ? WHERE id = ? ";
 // db.run(sql,["Jake",1], (err) =>{

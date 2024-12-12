@@ -21,12 +21,16 @@
                     <label for="login" class="text-font">Логин</label>
                     <input type="text" id="login" name="login" placeholder="Введите свой логин">
                 </div>
-                
-                <button class="form-submit-btn btn" type="submit">
-                    <span class="transition"></span>
-                    <span class="gradient"></span>
-                    <span class="label text-font">Войти</span>
-                </button>
+                <% if (error) { %>
+                    <div class="error-message">
+                        <%= error %>
+                    </div>
+                    <% } %>
+                        <button class="form-submit-btn btn" type="submit">
+                            <span class="transition"></span>
+                            <span class="gradient"></span>
+                            <span class="label text-font">Войти</span>
+                        </button>
             </form>
         </div>
     </div>

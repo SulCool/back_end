@@ -206,7 +206,6 @@ app.post("/add_task", urlencodedParser, (req, res) => {
 
     console.log("Полученные данные для задачи:", req.body);
 
-    // Проверяем, что все необходимые поля заполнены
     if (!title || !description || !startTime || !endTime || !executor) {
         console.log("Ошибка: не все поля заполнены.");
         return res.status(400).send("Все поля должны быть заполнены");
@@ -224,16 +223,16 @@ app.post("/add_task", urlencodedParser, (req, res) => {
         }
 
         console.log("Задача успешно добавлена");
+        return res.redirect("/");
+        // const tasksQuery = "SELECT * FROM tasks";
+        // get_tasks(tasksQuery, [], (err, tasks) => {
+        //     if (err) {
+        //         console.error("Ошибка при загрузке задач:", err.message);
+        //         return res.status(500).send("Ошибка сервера");
+        //     }
 
-        const tasksQuery = "SELECT * FROM tasks";
-        get_tasks(tasksQuery, [], (err, tasks) => {
-            if (err) {
-                console.error("Ошибка при загрузке задач:", err.message);
-                return res.status(500).send("Ошибка сервера");
-            }
-
-            res.render("main", { tasks, currentUser });
-        });
+        //     res.render("main", { tasks, currentUser });
+        // });
     });
 });
 

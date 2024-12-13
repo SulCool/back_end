@@ -122,10 +122,10 @@
                                 <p class="text-font">Срок: <%= (new Date(i.Date_end)).toLocaleDateString() %>
                                 </p>
                             </div>
+                            <div class="footer"><p class="text-font">Исполнитель: <%= i.Creator  %></p></div>
 
                             <div class="footer">
-                               
-                                <% if (i.Data_ended ) { %>
+                                <% if (i.Date_ended ) { %>
                                     <form action="/complete_task" method="POST">
                                     <button class="btn">
                                         <input type="hidden" name="taskId" value="<%= i.id %>">
@@ -175,6 +175,7 @@
                                                     <% } %>
                                     </div>
                                 </div>
+                                <div class="footer"><p class="text-font">Исполнитель: <%= i.Executer %></p></div>
                                 <div class="footer">
                                     <form action="/delete_task" method="POST">
                                         <button class="btn">

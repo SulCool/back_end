@@ -1,5 +1,5 @@
 import express from "express";
-import { get_users,update_user,delete_user,add_user } from "./bd.js";
+import { get_users,update_user,delete_user,add_user, add_task, get_tasks} from "./bd.js";
 import cookieParser from "cookie-parser";
 
 export const app = express();
@@ -141,12 +141,12 @@ app.post("/edits", urlencodedParser, (req, res) => {
                     user: req.body
                 });
             }
-
-            res.cookie("login", login, { httpOnly: true });
+            console.log("Данные пользователя обновлены");
             res.redirect("/");
         });
     });
 });
+
 
 app.get("/del", (req, res) => {
     res.render("del");
@@ -190,11 +190,52 @@ app.post("/del", urlencodedParser, (req, res) => {
     });
 });
 
-app.post("/add_task", urlencodedParser, function (req, res) {
-    if (!req.body) return res.sendStatus(400);
-    console.log(res.body);
-    res.send(`${req.body.title} - ${req.body.description} - ${req.body.date} - ${req.body.deadline} - ${req.body.name}`);
+
+
+app.post("/add_task", urlencodedParser, (req, res) => {
+    const { title, description, start_time, end_time, name } = req.body;
+
+    if (!title || !description || !start_time || !end_time || !name) {
+        return res.status(400).send("Все поля должны быть заполнены");
+    }
+    const usersQuery = "SELECT Surname, Name, Patronymic FROM users";
+    const tasksQuery = "SELECT * FROM tasks";
+    const addTaskQuery = `
+        INSERT INTO tasks (title, description, start_time, end_time, assigned_user)
+        VALUES (?, ?, ?, ?, ?)
+    `;
+    
+
+    get_users(usersQuery, [], (err, users) => {
+        if (err) {
+            console.error("Ошибка при загрузке пользователей:", err.message);
+            return res.status(500).send("Ошибка сервера");
+        }
+        console.log("Список пользователей:", users);
+
+        get_tasks(tasksQuery, [], (err, tasks) => {
+            if (err) {
+                console.error("Ошибка при загрузке задач:", err.message);
+                return res.status(500).send("Ошибка сервера");
+            }
+            console.log("Список пользователей:", users);
+
+            add_task(addTaskQuery, [title, description, start_time, end_time, name], (err) => {
+                if (err) {
+                    console.error("Ошибка при добавлении задачи:", err.message);
+                    return res.status(500).send("Ошибка сервера");
+                }
+
+                const currentUser = res.locals.user;
+                res.render("main", { tasks, users, currentUser });
+            });
+            console.log("Список пользователей:", users);
+
+        });
+    });
 });
+
+
 
 app.get("/add", (_, res) => {
     res.sendFile(__dirname + "/views/add.html");

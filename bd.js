@@ -8,11 +8,14 @@ const db = new sqlite3.Database("./main.db", sqlite3.OPEN_READWRITE, (err) => {
 export function get_users(query, params, callback) {
     db.all(query, params, (err, rows) => {
         if (err) {
-            return callback(err, null);
+            console.error("Ошибка выполнения запроса:", err.message);
+            callback(err, null);
+        } else {
+            callback(null, rows);
         }
-        callback(null, rows);
     });
 }
+
 
 export function add_user(name = "name", surname = "surname", patronymic = "patronymic", login = "login", role = "role", post = "post") {
     sql = "INSERT INTO users(Login, Surname, Name, Patronymic, Role, Post) VALUES(?, ?, ?, ?, ?, ?)";
@@ -47,5 +50,21 @@ export function update_user(oldLogin, newLogin, surname, name, patronymic, post,
 
         console.log("SQL запрос выполнен, количество измененных строк:", this.changes);
         callback(null, this.changes); 
+    });
+}
+
+export function add_task(query, params, callback) {
+    db.run(query, params, function (err) {
+        if (err) {
+            return callback(err);
+        }
+        callback(null, this.lastID);
+    });
+}
+
+export function get_tasks(callback) {
+    const query = 'SELECT * FROM tasks';
+    db.all(query, [], (err, rows) => {
+        callback(err, rows);
     });
 }

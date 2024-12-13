@@ -35,17 +35,32 @@ app.use((req, res, next) => {
 });
 
 app.get("/", (req, res) => {
-    const tasks = [{ title: "title", description: "description", deadline: "deadline", date: "date" }];
-    const usersQuery = "SELECT Surname, Name, Patronymic FROM users";
+    const currentUser = res.locals.user;
+    const usersQuery = "SELECT Surname, Name, Patronymic, Login FROM users";
     get_users(usersQuery, [], (err, users) => {
         if (err) {
             console.error("Ошибка при загрузке пользователей:", err.message);
             return res.status(500).send("Ошибка сервера");
         }
-        console.log("Список пользователей:", users);
-        const currentUser = res.locals.user;
+
+        
         console.log("Текущий пользователь:", currentUser);
-        res.render("main", { tasks, users, currentUser });
+
+        if (currentUser && currentUser.Surname && currentUser.Name && currentUser.Patronymic) {
+            var executer = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
+            console.log(executer); 
+        } else {
+        }
+        const tasksQuery = "SELECT * FROM tasks WHERE executer = ?";
+        console.log(executer);
+        get_tasks(tasksQuery, [executer], (err, tasks) => {
+            if (err) {
+                console.error("Ошибка при загрузке задач:", err.message);
+                return res.status(500).send("Ошибка сервера");
+            }
+
+            res.render("main", { tasks, users, currentUser });
+        });
     });
 });
 

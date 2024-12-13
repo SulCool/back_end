@@ -54,34 +54,37 @@
                             <input type="datetime-local" id="end-time" name="end-time"
                                 value="<%= (new Date()).toISOString().slice(0, 16) %>"
                                 min="<%= (new Date()).toISOString().slice(0, 16) %>" />
-                                <select name="executor" class="selector2 text-black text-font">
-                                    <% if (users.length > 0) { %>
-                                        <% for (let i of users) { %>
-                                            <option class="text-font text-black">
-                                                <%= i.Surname %> <%= i.Name %> <%= i.Patronymic %>
-                                            </option>
+                            <select name="executor" class="selector2 text-black text-font">
+                                <% if (users.length> 0) { %>
+                                    <% for (let i of users) { %>
+                                        <option class="text-font text-black">
+                                            <%= i.Surname %>
+                                                <%= i.Name %>
+                                                    <%= i.Patronymic %>
+                                        </option>
                                         <% } %>
-                                    <% } else { %>
-                                        <option>Нет доступных пользователей</option>
-                                    <% } %>
-                                </select>
-                                
+                                            <% } else { %>
+                                                <option>Нет доступных пользователей</option>
+                                                <% } %>
+                            </select>
+
                             <button class="btn" type="submit">
                                 <span class="transition"></span>
                                 <span class="gradient"></span>
                                 <span class="label text-font">Добавить</span>
                             </button>
                         </div>
-                    </form >
+                    </form>
                 </div>
-                <p class="text-font">Ваши задачи:</p>
+
             </div>
             <div class="main_body">
+
                 <div class="filter-container">
                     <select class="dropbtn selector text-black text-font">
                         <option class="text-font selector1 text-white"> Все </option>
                         <% for(let i of users) { %>
-                            
+
                             <option class="text-font selector1 text-white">
                                 <%= i.surname %>
                                     <%= i.name %>
@@ -100,7 +103,41 @@
                         </div>
                     </div>
                 </div>
+                <div class="text-font creator">Ваши задачи:</div>
                 <div class="buttons-container button">
+                    <% for(let i of tasks) { %>
+                        <div class="card">
+                            <div class="info">
+                                <p class="title text-font">
+                                    <%= i.Title %>
+                                </p>
+                                <p class="text-font">
+                                    <%= i.Desc %>
+                                </p>
+                            </div>
+                            <div class="footer">
+                                <p class="text-font">Дата начала: <%= (new Date(i.Date_start)).toLocaleDateString() %>
+                                </p>
+                            </div>
+                            <div class="footer">
+                                <p class="text-font">Срок: <%= (new Date(i.Date_end)).toLocaleDateString()  %>
+                                </p>
+                            </div>
+                            
+                            <div class="footer">
+                                <button class="btn">
+                                    <span class="transition"></span>
+                                    <span class="gradient"></span>
+                                    <span class="label text-font">Завершить</span>
+                                </button>
+                            </div>
+                        </div>
+                        <% } %>
+                </div>
+                <div class="text-font creator">
+                    Созданные вами:
+                </div>
+                <div class="buttons-container button ">
                     <% for(let i of tasks) { %>
                         <div class="card">
                             <div class="info">
@@ -120,15 +157,18 @@
                                 </p>
                             </div>
                             <div class="footer">
-                                <button type="button" class="btn">
-                                    <span class="transition"></span>
-                                    <span class="gradient"></span>
-                                    <span class="label text-font">Взять</span>
-                                </button>
+                                <div class="text-font">Статус: <% if (i.date_ended) { %>
+                                    Завершен
+                                        <% } else { %>
+                                            В процессе
+                                            <% } %>
+                                </div>
+                            </div>
+                            <div class="footer">
                                 <button class="btn">
                                     <span class="transition"></span>
                                     <span class="gradient"></span>
-                                    <span class="label text-font">Завершить</span>
+                                    <span class="label text-font">Удалить</span>
                                 </button>
                             </div>
                         </div>

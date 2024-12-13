@@ -50,7 +50,13 @@ header {
 .main_body {
     padding: 10px;
 }
-
+.creator {
+    padding-top: 20px;
+    padding-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 
 .filter-container {
     display: flex;

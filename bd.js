@@ -62,9 +62,8 @@ export function add_task(query, params, callback) {
     });
 }
 
-export function get_tasks(callback) {
-    const query = 'SELECT * FROM tasks';
-    db.all(query, [], (err, rows) => {
+export function get_tasks(query, params, callback) {
+    db.all(query, params, (err, rows) => {
         callback(err, rows);
     });
 }

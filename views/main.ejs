@@ -84,24 +84,24 @@
                         <option class="text-font selector1 text-white"> Все </option>
                         <% for(let i of users) { %>
                             <option class="text-font selector1 text-white">
-                                <%= i.surname %>
-                                    <%= i.name %>
-                                        <%= i.patronymic %>
+                                <%= i.Surname %>
+                                    <%= i.Name %>
+                                        <%= i.Patronymic %>
                             </option>
                             <% } %>
                     </select>
                     <div class="dropdown">
                         <img src="/icons/sort.png" class="dropbtn">
                         <div class="dropdown-content">
-                            <div class="text-font">
-                                <a>Ссылка 1</a>
-                                <a>Ссылка 2</a>
-                                <a>Ссылка 3</a>
+                            <div class="text-font sort-buttons">
+                                <a href="/?sort=asc" class="sort-buttons" <% if (sortOrder === 'asc') { %>selected<% } %> >От А до Я</a>
+                                <a href="/?sort=desc" class="sort-buttons" <% if (sortOrder === 'desc') { %>selected<% } %> > От Я до А </a>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="text-font creator">Ваши задачи:</div>
+                <% if(tasksinworks && tasksinworks.length> 0) {%>
                 <div class="buttons-container button">
                     <% for(let i of tasksinworks) { %>
                         <div class="card">
@@ -142,6 +142,9 @@
                         </div>
                         <% } %>
                 </div>
+                <% } else {%>
+                    <div class="text-font">У вас нет задач</div>
+                    <%}%>
                 <div class="text-font creator">
                     Созданные вами:
                 </div>

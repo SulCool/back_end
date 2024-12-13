@@ -1,5 +1,5 @@
 import express from "express";
-import { get_users, update_user, delete_user, add_user, add_task, get_tasks_creator, get_tasks_executer, delete_task, complete_task} from "./bd.js";
+import { get_users, update_user, delete_user, add_user, add_task, get_tasks_creator, get_tasks_executer, delete_task, complete_task } from "./bd.js";
 import cookieParser from "cookie-parser";
 
 export const app = express();
@@ -36,6 +36,8 @@ app.use((req, res, next) => {
 
 app.get("/", (req, res) => {
     const currentUser = res.locals.user;
+    const sortOrder = req.query.sort || 'asc';
+
     const usersQuery = "SELECT Surname, Name, Patronymic, Login FROM users";
     get_users(usersQuery, [], (err, users) => {
         if (err) {
@@ -48,18 +50,27 @@ app.get("/", (req, res) => {
             executer = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
             console.log("Текущий исполнитель:", executer);
         }
-        
-        get_tasks_creator(currentUser.Login,(err, taskcreators) => {
-            get_tasks_executer(executer, (err, tasksinworks) => {
-                console.log(taskcreators);
-                res.render("main", {tasksinworks, users, currentUser, taskcreators });
 
-            })
-        })
-       
+        get_tasks_creator(currentUser.Login, (err, taskcreators) => {
+            get_tasks_executer(executer, (err, tasksinworks) => {
+                console.log("До сортировки:", tasksinworks);
+                tasksinworks.sort((a, b) => {
+                    const titleA = (a.Title && a.Title.toLowerCase()) || '';
+                    const titleB = (b.Title && b.Title.toLowerCase()) || '';
+
+                    if (sortOrder === 'asc') {
+                        return titleA.localeCompare(titleB);
+                    } else {
+                        return titleB.localeCompare(titleA);
+                    }
+                });
+                console.log("После сортировки:", tasksinworks);
+
+                res.render("main", { tasksinworks, users, currentUser, taskcreators, sortOrder });
+            });
+        });
     });
 });
-
 
 
 app.get("/profile", (req, res) => {

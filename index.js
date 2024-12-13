@@ -27,7 +27,7 @@ app.use((req, res, next) => {
     get_users(query, [userLogin], (err, rows) => {
         if (err || rows.length === 0) {
             res.locals.isAuthorized = false;
-            res.clearCookie("login"); // Очищаем куки при ошибке
+            res.clearCookie("login");
             return next();
         }
         const user = rows[0];
@@ -72,8 +72,11 @@ app.post("/edits", urlencodedParser, (req, res) => {
 
     console.log("Полученные данные:", req.body);
 
-    if (!login || !surname || !name || !patronymic || !post) {
-        return res.render('edits', { error: 'Все поля должны быть заполнены', user: req.body });
+    if (!old_login || !login || !surname || !name || !patronymic || !post) {
+        return res.render('edits', {
+            error: 'Все поля должны быть заполнены',
+            user: req.body
+        });
     }
 
     const userRole = role === "on" ? "Admin" : "User";
@@ -82,11 +85,17 @@ app.post("/edits", urlencodedParser, (req, res) => {
     get_users(query, [login], (err, row) => {
         if (err) {
             console.error('Ошибка при выполнении запроса:', err.message);
-            return res.render('edits', { error: 'Ошибка сервера', user: req.body });
+            return res.render('edits', {
+                error: 'Ошибка сервера',
+                user: req.body
+            });
         }
 
         if (row.length > 0 && row[0].login !== old_login) {
-            return res.render('edits', { error: 'Логин уже занят', user: req.body });
+            return res.render('edits', {
+                error: 'Логин уже занят',
+                user: req.body
+            });
         }
 
         console.log("Логин уникален, начинаем обновление");
@@ -94,20 +103,27 @@ app.post("/edits", urlencodedParser, (req, res) => {
         update_user(old_login, login, surname, name, patronymic, post, userRole, (err, changes) => {
             if (err) {
                 console.error('Ошибка при обновлении пользователя:', err.message);
-                return res.render('edits', { error: 'Ошибка сервера', user: req.body });
+                return res.render('edits', {
+                    error: 'Ошибка сервера',
+                    user: req.body
+                });
             }
 
             console.log("Количество измененных строк:", changes);
 
             if (changes === 0) {
-                return res.render('edits', { error: 'Пользователь с таким логином не найден', user: req.body });
+                return res.render('edits', {
+                    error: 'Пользователь с таким логином не найден',
+                    user: req.body
+                });
             }
 
-            res.cookie("login", login, { httpOnly: true }); 
+            res.cookie("login", login, { httpOnly: true });
             res.redirect("/");
         });
     });
 });
+
 
 
 app.get("/add", (_, res) => {
@@ -159,7 +175,7 @@ app.post("/log_sign", urlencodedParser, (req, res) => {
     if (!req.body || !req.body.login || req.body.login.trim() === "") {
         return res.render('log_sign', { error: "Введите логин" });
     }
-
+    res.clearCookie("login");
     const query = 'SELECT * FROM users WHERE login = ?';
     get_users(query, [req.body.login], (err, rows) => {
         if (err || rows.length === 0) {
@@ -204,17 +220,19 @@ app.post("/del", urlencodedParser, (req, res) => {
 
             console.log("Пользователь удалён:", userLogin);
 
-            // Если удалённый пользователь — текущий, удаляем куки и перенаправляем на главную
             if (req.cookies.login === userLogin) {
                 res.clearCookie("login");
-                return res.redirect("/log_sign"); // Перенаправляем на страницу входа
+                return res.redirect("/log_sign");
             }
 
             res.redirect("/");
         });
     });
 });
-
+app.get("/logout", (req, res) => {
+    res.clearCookie("login"); 
+    res.redirect("/log_sign"); 
+});
 
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);

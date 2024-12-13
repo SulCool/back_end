@@ -20,31 +20,31 @@
             <form class="form" method="post">
                 <div class="form-group">
                     <label for="old_login" class="text-font">Старый логин</label>
-                    <input type="text" name="old_login" id="old_login" placeholder="Введите старый логин">
+                    <input type="text" name="old_login" id="old_login" placeholder="Введите старый логин" required>
                 </div>
                 <div class="form-group">
                     <label for="login" class="text-font">Новый логин</label>
-                    <input type="text" id="login" name="login" placeholder="Введите новый логин" >
+                    <input type="text" id="login" name="login" placeholder="Введите новый логин" required>
                 </div>
                 <label class="checkbox-container">
                     <input class="custom-checkbox" type="checkbox" name="role" value="on" <%= user.role === "Admin" ? "checked" : "" %>>
                     <span class="checkmark"></span> Admin
-                </label>  
+                </label>
                 <div class="form-group">
                     <label for="post" class="text-font">Новая должность</label>
-                    <input type="text" id="post" name="post"  placeholder="Введите должность" >
+                    <input type="text" id="post" name="post" placeholder="Введите должность" required>
                 </div>
                 <div class="form-group">
                     <label for="surname" class="text-font">Фамилия</label>
-                    <input type="text" id="surname" name="surname"  placeholder="Введите фамилию"  >
+                    <input type="text" id="surname" name="surname" placeholder="Введите фамилию" required>
                 </div>
                 <div class="form-group">
                     <label for="name" class="text-font">Имя</label>
-                    <input type="text" id="name" name="name"  placeholder="Введите имя" >
+                    <input type="text" id="name" name="name" placeholder="Введите имя" required>
                 </div>
                 <div class="form-group">
                     <label for="patronymic" class="text-font">Отчество</label>
-                    <input type="text" id="patronymic" name="patronymic" placeholder="Введите отчество">
+                    <input type="text" id="patronymic" name="patronymic" placeholder="Введите отчество" required>
                 </div>
                 
                 <button class="form-submit-btn btn" type="submit">

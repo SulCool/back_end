@@ -103,7 +103,7 @@
                 </div>
                 <div class="text-font creator">Ваши задачи:</div>
                 <div class="buttons-container button">
-                    <% for(let i of taskcreators) { %>
+                    <% for(let i of tasksinworks) { %>
                         <div class="card">
                             <div class="info">
                                 <p class="title text-font">
@@ -135,9 +135,9 @@
                 <div class="text-font creator">
                     Созданные вами:
                 </div>
-                <% if(tasksinworks && tasksinworks.length > 0) {%>
+                <% if(taskcreators && taskcreators.length > 0) {%>
                 <div class="buttons-container button ">
-                    <% for(let i of tasksinworks) { %>
+                    <% for(let i of taskcreators) { %>
                         <div class="card">
                             <div class="info">
                                 <p class="title text-font">
@@ -164,11 +164,13 @@
                                 </div>
                             </div>
                             <div class="footer">
+                                <form action="/delete" method="post">
                                 <button class="btn">
                                     <span class="transition"></span>
                                     <span class="gradient"></span>
                                     <span class="label text-font">Удалить</span>
                                 </button>
+                                </form>
                             </div>
                         </div>
                         <% } %>

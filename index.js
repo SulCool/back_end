@@ -37,7 +37,6 @@ app.use((req, res, next) => {
 app.get("/", (req, res) => {
     const currentUser = res.locals.user;
     const usersQuery = "SELECT Surname, Name, Patronymic, Login FROM users";
-    const taskcreators = get_tasks_creator(currentUser);
     get_users(usersQuery, [], (err, users) => {
         if (err) {
             console.error("Ошибка при загрузке пользователей:", err.message);
@@ -49,11 +48,15 @@ app.get("/", (req, res) => {
             executer = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
             console.log("Текущий исполнитель:", executer);
         }
-        const tasksinworks = get_tasks_executer(executer);
-        console.log(executer);
-        res.render("main", {tasksinworks, users, currentUser, taskcreators });
+
+        get_tasks_creator(currentUser.Login,(err, taskcreators) => {
+            get_tasks_executer(executer, (err, tasksinworks) => {
+                res.render("main", {tasksinworks, users, currentUser, taskcreators });
+            })
+        })
     });
 });
+
 
 
 app.get("/profile", (req, res) => {

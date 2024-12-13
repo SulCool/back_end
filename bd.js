@@ -75,3 +75,15 @@ export function get_tasks_creator(user, callback) {
         callback(err,rows);        
     });
 }
+
+export function delete_task(taskId, callback) {
+    const sql = "DELETE FROM tasks WHERE id = ?";
+    db.run(sql, [taskId], function (err) {
+        if (err) {
+            console.error("Ошибка при удалении задачи:", err.message);
+            return callback(err);
+        }
+        console.log(`Задача с id=${taskId} удалена`);
+        callback(null);
+    });
+}

@@ -141,18 +141,18 @@
                         <div class="card">
                             <div class="info">
                                 <p class="title text-font">
-                                    <%= i.title %>
+                                    <%= i.Title %>
                                 </p>
                                 <p class="text-font">
-                                    <%= i.description %>
+                                    <%= i.Desc %>
                                 </p>
                             </div>
                             <div class="footer">
-                                <p class="text-font">Срок: <%= i.deadline %>
+                                <p class="text-font">Дата начала: <%= (new Date(i.Date_end)).toLocaleDateString() %>
                                 </p>
                             </div>
                             <div class="footer">
-                                <p class="text-font">Дата начала: <%= i.date %>
+                                <p class="text-font">Срок: <%=  (new Date(i.Date_end)).toLocaleDateString() %>
                                 </p>
                             </div>
                             <div class="footer">
@@ -164,8 +164,9 @@
                                 </div>
                             </div>
                             <div class="footer">
-                                <form action="/delete" method="post">
+                                <form action="/delete_task" method="POST">
                                 <button class="btn">
+                                    <input type="hidden" name="taskId" value="<%= i.id %>">
                                     <span class="transition"></span>
                                     <span class="gradient"></span>
                                     <span class="label text-font">Удалить</span>

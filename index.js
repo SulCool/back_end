@@ -1,5 +1,5 @@
 import express from "express";
-import { get_users, update_user, delete_user, add_user, add_task, get_tasks_creator, get_tasks_executer } from "./bd.js";
+import { get_users, update_user, delete_user, add_user, add_task, get_tasks_creator, get_tasks_executer, delete_task} from "./bd.js";
 import cookieParser from "cookie-parser";
 
 export const app = express();
@@ -233,15 +233,6 @@ app.post("/add_task", urlencodedParser, (req, res) => {
 
         console.log("Задача успешно добавлена");
         return res.redirect("/");
-        // const tasksQuery = "SELECT * FROM tasks";
-        // get_tasks(tasksQuery, [], (err, tasks) => {
-        //     if (err) {
-        //         console.error("Ошибка при загрузке задач:", err.message);
-        //         return res.status(500).send("Ошибка сервера");
-        //     }
-
-        //     res.render("main", { tasks, currentUser });
-        // });
     });
 });
 
@@ -282,6 +273,23 @@ app.get("/logout", (req, res) => {
     res.clearCookie("login");
     res.redirect("/log_sign");
 });
+
+app.post("/delete_task", urlencodedParser, (req, res) => {
+    const { taskId } = req.body;
+
+    if (!taskId) {
+        return res.status(400).send("ID задачи не указан");
+    }
+
+    delete_task(taskId, (err) => {
+        if (err) {
+            console.error("Ошибка при удалении задачи:", err.message);
+            return res.status(500).send("Ошибка сервера");
+        }
+        res.redirect("/");
+    });
+});
+
 
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);

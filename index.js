@@ -1,5 +1,5 @@
 import express from "express";
-import { get_users, update_user, delete_user, add_user, add_task, get_tasks } from "./bd.js";
+import { get_users, update_user, delete_user, add_user, add_task, get_tasks_creator, get_tasks_executer } from "./bd.js";
 import cookieParser from "cookie-parser";
 
 export const app = express();
@@ -37,30 +37,21 @@ app.use((req, res, next) => {
 app.get("/", (req, res) => {
     const currentUser = res.locals.user;
     const usersQuery = "SELECT Surname, Name, Patronymic, Login FROM users";
+    const taskcreators = get_tasks_creator(currentUser);
     get_users(usersQuery, [], (err, users) => {
         if (err) {
             console.error("Ошибка при загрузке пользователей:", err.message);
             return res.status(500).send("Ошибка сервера");
         }
 
-        
-        console.log("Текущий пользователь:", currentUser);
-
+        let executer = "";
         if (currentUser && currentUser.Surname && currentUser.Name && currentUser.Patronymic) {
-            var executer = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
-            console.log(executer); 
-        } else {
+            executer = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
+            console.log("Текущий исполнитель:", executer);
         }
-        const tasksQuery = "SELECT * FROM tasks WHERE executer = ?";
+        const tasksinworks = get_tasks_executer(executer);
         console.log(executer);
-        get_tasks(tasksQuery, [executer], (err, tasks) => {
-            if (err) {
-                console.error("Ошибка при загрузке задач:", err.message);
-                return res.status(500).send("Ошибка сервера");
-            }
-
-            res.render("main", { tasks, users, currentUser });
-        });
+        res.render("main", {tasksinworks, users, currentUser, taskcreators });
     });
 });
 

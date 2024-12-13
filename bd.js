@@ -62,8 +62,34 @@ export function add_task(query, params, callback) {
     });
 }
 
-export function get_tasks(query, params, callback) {
-    db.all(query, params, (err, rows) => {
-        callback(err, rows);
+export function get_tasks_executer(user) {
+    const query = 'SELECT * FROM tasks WHERE Executer = ?';
+    let result = [];
+    db.all(query, [user], (err, rows) => {
+        if (err) {
+            
+            console.error('Ошибка при выполнении запроса:', err.message);
+        }
+        else{ 
+            result = rows;
+            
+            console.log(rows)
+            return result;}
+
     });
+    return result;
+}
+
+export function get_tasks_creator(user) {
+    const query = 'SELECT * FROM tasks WHERE Creator = ?';
+    let result = [];
+    db.all(query, [user], (err, rows) => {
+        if (err) {
+            console.error('Ошибка при выполнении запроса:', err.message);
+           
+        }
+        else{ result = rows; console.log(rows)}
+        
+    });
+    return result;
 }

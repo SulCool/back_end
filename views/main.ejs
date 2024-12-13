@@ -67,7 +67,6 @@
                                                 <option>Нет доступных пользователей</option>
                                                 <% } %>
                             </select>
-
                             <button class="btn" type="submit">
                                 <span class="transition"></span>
                                 <span class="gradient"></span>
@@ -84,7 +83,6 @@
                     <select class="dropbtn selector text-black text-font">
                         <option class="text-font selector1 text-white"> Все </option>
                         <% for(let i of users) { %>
-
                             <option class="text-font selector1 text-white">
                                 <%= i.surname %>
                                     <%= i.name %>
@@ -105,7 +103,7 @@
                 </div>
                 <div class="text-font creator">Ваши задачи:</div>
                 <div class="buttons-container button">
-                    <% for(let i of tasks) { %>
+                    <% for(let i of taskcreators) { %>
                         <div class="card">
                             <div class="info">
                                 <p class="title text-font">
@@ -137,8 +135,9 @@
                 <div class="text-font creator">
                     Созданные вами:
                 </div>
+                <% if(tasksinworks && tasksinworks.length > 0) {%>
                 <div class="buttons-container button ">
-                    <% for(let i of tasks) { %>
+                    <% for(let i of tasksinworks) { %>
                         <div class="card">
                             <div class="info">
                                 <p class="title text-font">
@@ -173,6 +172,9 @@
                             </div>
                         </div>
                         <% } %>
+                        <% } else {%>
+                        <div class="text-font">У вас нет задач</div>
+                            <%}%>
                 </div>
             </div>
         </main>

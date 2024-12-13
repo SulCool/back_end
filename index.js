@@ -1,5 +1,5 @@
 import express from "express";
-import { get_users,update_user,delete_user,add_user, add_task, get_tasks} from "./bd.js";
+import { get_users, update_user, delete_user, add_user, add_task, get_tasks } from "./bd.js";
 import cookieParser from "cookie-parser";
 
 export const app = express();
@@ -42,7 +42,7 @@ app.get("/", (req, res) => {
             console.error("Ошибка при загрузке пользователей:", err.message);
             return res.status(500).send("Ошибка сервера");
         }
-        console.log("Список пользователей:", users); 
+        console.log("Список пользователей:", users);
         const currentUser = res.locals.user;
         console.log("Текущий пользователь:", currentUser);
         res.render("main", { tasks, users, currentUser });
@@ -201,38 +201,43 @@ app.post("/del", urlencodedParser, (req, res) => {
 
 
 app.post("/add_task", urlencodedParser, (req, res) => {
-    const { title, description, start_time, end_time, name } = req.body;
+    const { title, description, 'start-time': startTime, 'end-time': endTime, executor } = req.body;
+    const currentUser = res.locals.user;
 
-    if (!title || !description || !start_time || !end_time || !name) {
+    console.log("Полученные данные для задачи:", req.body);
+
+    // Проверяем, что все необходимые поля заполнены
+    if (!title || !description || !startTime || !endTime || !executor) {
+        console.log("Ошибка: не все поля заполнены.");
         return res.status(400).send("Все поля должны быть заполнены");
     }
-    const tasksQuery = "SELECT * FROM tasks";
-    const addTaskQuery = `
-        INSERT INTO tasks (title, description, start_time, end_time, assigned_user)
-        VALUES (?, ?, ?, ?, ?)
-    `;
-    
 
+    const addTaskQuery = `
+        INSERT INTO tasks (title, Desc, Date_start, Date_end, creator, executer)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `;
+
+    add_task(addTaskQuery, [title, description, startTime, endTime, currentUser.Login, executor], (err) => {
+        if (err) {
+            console.error("Ошибка при добавлении задачи:", err.message);
+            return res.status(500).send("Ошибка сервера");
+        }
+
+        console.log("Задача успешно добавлена");
+
+        const tasksQuery = "SELECT * FROM tasks";
         get_tasks(tasksQuery, [], (err, tasks) => {
             if (err) {
                 console.error("Ошибка при загрузке задач:", err.message);
                 return res.status(500).send("Ошибка сервера");
             }
-            console.log("Список пользователей:", users);
 
-            add_task(addTaskQuery, [title, description, start_time, end_time, name], (err) => {
-                if (err) {
-                    console.error("Ошибка при добавлении задачи:", err.message);
-                    return res.status(500).send("Ошибка сервера");
-                }
-
-                const currentUser = res.locals.user;
-                res.render("main", { tasks, users, currentUser });
-            });
-            console.log("Список пользователей:", users);
-
+            res.render("main", { tasks, currentUser });
         });
     });
+});
+
+
 
 
 

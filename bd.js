@@ -24,10 +24,15 @@ export function add_user(name = "name", surname = "surname", patronymic = "patro
     );
 }
 
-export function delete_user(id) {
-    sql = "DELETE FROM users WHERE id = ?";
-    db.run(sql, [id], (err) => {
-        if (err) return console.error(err.message);
+export function delete_user(id, callback) {
+    const sql = "DELETE FROM users WHERE id = ?";
+    db.run(sql, [id], function(err) {
+        if (err) {
+            console.error("Ошибка SQL при удалении пользователя:", err.message);
+            return callback(err);
+        }
+        console.log(`Пользователь с id=${id} удалён.`);
+        callback(null);
     });
 }
 

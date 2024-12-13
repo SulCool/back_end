@@ -1,22 +1,24 @@
+<!-- del.ejs -->
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="/css/log_sign.css">
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/checkbox.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Удаление пользователя</title>
 </head>
-
 <body>
     <div class="display-container">
         <div class="form-container">
             <form class="form" method="post">
+                <% if (typeof error !== "undefined" && error) { %>
+                    <p class="error"><%= error %></p>
+                <% } %>
                 <div class="form-group">
-                    <label for="login" class="text-font">Удалить</label>
-                    <input type="text" id="login" name="login" placeholder="Введите логин" value="<%= user.login %>">
+                    <label for="login" class="text-font">Удалить пользователя</label>
+                    <input type="text" id="login" name="login" placeholder="Введите логин" >
                 </div>
                 <button class="form-submit-btn btn" type="submit">
                     <span class="transition"></span>
@@ -27,5 +29,4 @@
         </div>
     </div>
 </body>
-
 </html>

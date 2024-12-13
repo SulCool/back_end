@@ -17,11 +17,11 @@
 <body>
     <div class="container">
         <header>
-            <% if (currentUser.Role==='Admin' ) { %>
+            <% if (currentUser && currentUser.Role === 'Admin') { %>
                 <a href="/add" class="add-btn text-font">
                     Добавить
                 </a>
-                <% } %>
+            <% } %>
                     <div class="profile-icon">
                         <img src="/icons/icon.png" class="profile-img">
                         <div class="modal">

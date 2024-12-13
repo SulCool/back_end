@@ -21,6 +21,11 @@
                     Изменить
                 </a>
                 <% } %>
+                <% if (currentUser.Role==='Admin' ) { %>
+                    <a href="/del" class="add-btn text-font">
+                        Удалить
+                    </a>
+                    <% } %>
                     <div class="profile-icon">
                         <img src="/icons/icon.png" class="profile-img">
                         <div class="modal">

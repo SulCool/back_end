@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/css/log_sign.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/checkbox.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <div class="display-container">
+        <div class="form-container">
+            <form class="form" method="post">
+                <div class="form-group">
+                    <label for="login" class="text-font">Удалить</label>
+                    <input type="text" id="login" name="login" placeholder="Введите логин" value="<%= user.login %>">
+                </div>
+                <button class="form-submit-btn btn" type="submit">
+                    <span class="transition"></span>
+                    <span class="gradient"></span>
+                    <span class="label text-font">Удалить</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

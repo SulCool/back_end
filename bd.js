@@ -24,6 +24,32 @@ export function add_user(name = "name", surname = "surname", patronymic = "patro
     );
 }
 
+export function delete_user(id) {
+    sql = "DELETE FROM users WHERE id = ?";
+    db.run(sql, [id], (err) => {
+        if (err) return console.error(err.message);
+    });
+}
+
+export function update_user(oldLogin, newLogin, surname, name, patronymic, post, role, callback) {
+    console.log("Обновление пользователя:", oldLogin, newLogin, surname, name, patronymic, post, role);
+
+    // Строим запрос на обновление данных пользователя по старому логину
+    sql = `UPDATE users SET Login = ?, Surname = ?, Name = ?, Patronymic = ?, Role = ?, Post = ? WHERE Login = ?`;
+    db.run(sql, [newLogin, surname, name, patronymic, role, post, oldLogin], function (err) {
+        if (err) {
+            console.error('Ошибка SQL при обновлении пользователя:', err.message);
+            return callback(err, null);
+        }
+
+        console.log("SQL запрос выполнен, количество измененных строк:", this.changes);
+        callback(null, this.changes); // Возвращаем количество измененных строк
+    });
+}
+
+
+
+
 //update
 // sql = "UPDATE users SET name = ? WHERE id = ? ";
 // db.run(sql,["Jake",1], (err) =>{

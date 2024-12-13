@@ -87,3 +87,9 @@ export function delete_task(taskId, callback) {
         callback(null);
     });
 }
+
+export function complete_task(query, params, callback) {
+    db.run(query, params, function (err) {
+        callback(err);
+    });
+}

@@ -1,5 +1,5 @@
 import express from "express";
-import { get_users, update_user, delete_user, add_user, add_task, get_tasks_creator, get_tasks_executer, delete_task} from "./bd.js";
+import { get_users, update_user, delete_user, add_user, add_task, get_tasks_creator, get_tasks_executer, delete_task, complete_task} from "./bd.js";
 import cookieParser from "cookie-parser";
 
 export const app = express();
@@ -48,10 +48,12 @@ app.get("/", (req, res) => {
             executer = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
             console.log("Текущий исполнитель:", executer);
         }
-
+        
         get_tasks_creator(currentUser.Login,(err, taskcreators) => {
             get_tasks_executer(executer, (err, tasksinworks) => {
+                console.log(taskcreators);
                 res.render("main", {tasksinworks, users, currentUser, taskcreators });
+
             })
         })
     });
@@ -289,6 +291,21 @@ app.post("/delete_task", urlencodedParser, (req, res) => {
         res.redirect("/");
     });
 });
+
+app.post("/complete_task", urlencodedParser, (req, res) => {
+    const { taskId } = req.body;
+    const query = "UPDATE tasks SET date_ended = ? WHERE id = ?";
+    const dateEnded = new Date().toISOString();
+
+    complete_task(query, [dateEnded, taskId], (err) => {
+        if (err) {
+            console.error("Ошибка при завершении задачи:", err.message);
+            return res.status(500).send("Ошибка сервера");
+        }
+        res.redirect("/");
+    });
+});
+
 
 
 app.listen(PORT, () => {

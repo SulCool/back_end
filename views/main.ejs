@@ -109,25 +109,35 @@
                                 <p class="title text-font">
                                     <%= i.Title %>
                                 </p>
-                                <p class="text-font">
-                                    <%= i.Desc %>
-                                </p>
+                                <%= i.Data_ended %>
+                                    <p class="text-font">
+                                        <%= i.Desc %>
+                                    </p>
                             </div>
                             <div class="footer">
                                 <p class="text-font">Дата начала: <%= (new Date(i.Date_start)).toLocaleDateString() %>
                                 </p>
                             </div>
                             <div class="footer">
-                                <p class="text-font">Срок: <%= (new Date(i.Date_end)).toLocaleDateString()  %>
+                                <p class="text-font">Срок: <%= (new Date(i.Date_end)).toLocaleDateString() %>
                                 </p>
                             </div>
-                            
+
                             <div class="footer">
-                                <button class="btn">
-                                    <span class="transition"></span>
-                                    <span class="gradient"></span>
-                                    <span class="label text-font">Завершить</span>
-                                </button>
+                               
+                                <% if (i.Data_ended ) { %>
+                                    <form action="/complete_task" method="POST">
+                                    <button class="btn">
+                                        <input type="hidden" name="taskId" value="<%= i.id %>">
+                                        <span class="transition"></span>
+                                        <span class="gradient"></span>
+                                        <span class="label text-font">Завершить</span>
+                                    </button>
+                                    </form>
+                                <% } else { %>
+                                    <div class="text-font">Ожидание ответа</div>
+                                    <% } %>
+
                             </div>
                         </div>
                         <% } %>
@@ -135,50 +145,52 @@
                 <div class="text-font creator">
                     Созданные вами:
                 </div>
-                <% if(taskcreators && taskcreators.length > 0) {%>
-                <div class="buttons-container button ">
-                    <% for(let i of taskcreators) { %>
-                        <div class="card">
-                            <div class="info">
-                                <p class="title text-font">
-                                    <%= i.Title %>
-                                </p>
-                                <p class="text-font">
-                                    <%= i.Desc %>
-                                </p>
-                            </div>
-                            <div class="footer">
-                                <p class="text-font">Дата начала: <%= (new Date(i.Date_end)).toLocaleDateString() %>
-                                </p>
-                            </div>
-                            <div class="footer">
-                                <p class="text-font">Срок: <%=  (new Date(i.Date_end)).toLocaleDateString() %>
-                                </p>
-                            </div>
-                            <div class="footer">
-                                <div class="text-font">Статус: <% if (i.date_ended) { %>
-                                    Завершен
-                                        <% } else { %>
-                                            В процессе
-                                            <% } %>
+                <% if(taskcreators && taskcreators.length> 0) {%>
+                    <div class="buttons-container button ">
+                        <% for(let i of taskcreators) { %>
+                            <div class="card">
+                                <div class="info">
+                                    <p class="title text-font">
+                                        <%= i.Title %>
+                                    </p>
+                                    <p class="text-font">
+                                        <%= i.Desc %>
+                                    </p>
+                                </div>
+                                <div class="footer">
+                                    <p class="text-font">Дата начала: <%= (new Date(i.Date_end)).toLocaleDateString() %>
+                                    </p>
+                                </div>
+                                <div class="footer">
+                                    <p class="text-font">Срок: <%= (new Date(i.Date_end)).toLocaleDateString() %>
+                                    </p>
+                                </div>
+                                <div class="footer">
+                                    <div class="text-font">
+                                        Статус:
+                                        <% if (i.Date_ended) { %>
+                                            Завершено (<%= new Date(i.Date_ended).toLocaleDateString() %>)
+                                                <% } else { %>
+                                                    В процессе
+                                                    <% } %>
+                                    </div>
+                                </div>
+                                <div class="footer">
+                                    <form action="/delete_task" method="POST">
+                                        <button class="btn">
+                                            <input type="hidden" name="taskId" value="<%= i.id %>">
+                                            <span class="transition"></span>
+                                            <span class="gradient"></span>
+                                            <span class="label text-font">Удалить</span>
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
-                            <div class="footer">
-                                <form action="/delete_task" method="POST">
-                                <button class="btn">
-                                    <input type="hidden" name="taskId" value="<%= i.id %>">
-                                    <span class="transition"></span>
-                                    <span class="gradient"></span>
-                                    <span class="label text-font">Удалить</span>
-                                </button>
-                                </form>
-                            </div>
-                        </div>
-                        <% } %>
-                        <% } else {%>
-                        <div class="text-font">У вас нет задач</div>
-                            <%}%>
-                </div>
+                            <% } %>
+                                <% } else {%>
+                                    <div class="text-font">У вас нет задач</div>
+                                    <%}%>
+                    </div>
             </div>
         </main>
     </div>

@@ -36,11 +36,19 @@ app.use((req, res, next) => {
 
 app.get("/", (req, res) => {
     const tasks = [{ title: "title", description: "description", deadline: "deadline", date: "date" }];
-    const users = [{ surname: "surname", name: "name", patronymic: "patronymic" }];
-    const currentUser = res.locals.user;
-    console.log("Текущий пользователь:", currentUser);
-    res.render("main", { tasks, users, currentUser });
+    const usersQuery = "SELECT Surname, Name, Patronymic FROM users";
+    get_users(usersQuery, [], (err, users) => {
+        if (err) {
+            console.error("Ошибка при загрузке пользователей:", err.message);
+            return res.status(500).send("Ошибка сервера");
+        }
+        console.log("Список пользователей:", users); 
+        const currentUser = res.locals.user;
+        console.log("Текущий пользователь:", currentUser);
+        res.render("main", { tasks, users, currentUser });
+    });
 });
+
 
 app.get("/profile", (req, res) => {
     const currentUser = res.locals.user;
@@ -198,20 +206,12 @@ app.post("/add_task", urlencodedParser, (req, res) => {
     if (!title || !description || !start_time || !end_time || !name) {
         return res.status(400).send("Все поля должны быть заполнены");
     }
-    const usersQuery = "SELECT Surname, Name, Patronymic FROM users";
     const tasksQuery = "SELECT * FROM tasks";
     const addTaskQuery = `
         INSERT INTO tasks (title, description, start_time, end_time, assigned_user)
         VALUES (?, ?, ?, ?, ?)
     `;
     
-
-    get_users(usersQuery, [], (err, users) => {
-        if (err) {
-            console.error("Ошибка при загрузке пользователей:", err.message);
-            return res.status(500).send("Ошибка сервера");
-        }
-        console.log("Список пользователей:", users);
 
         get_tasks(tasksQuery, [], (err, tasks) => {
             if (err) {
@@ -233,7 +233,7 @@ app.post("/add_task", urlencodedParser, (req, res) => {
 
         });
     });
-});
+
 
 
 

@@ -224,11 +224,11 @@ app.post("/add_task", urlencodedParser, (req, res) => {
     }
 
     const addTaskQuery = `
-        INSERT INTO tasks (title, Desc, Date_start, Date_end, creator, executer)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO tasks (title, Desc, Date_start, Date_end, creator, executer, Creator_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-
-    add_task(addTaskQuery, [title, description, startTime, endTime, currentUser.Login, executor], (err) => {
+    const userName = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
+    add_task(addTaskQuery, [title, description, startTime, endTime, currentUser.Login, executor, userName], (err) => {
         if (err) {
             console.error("Ошибка при добавлении задачи:", err.message);
             return res.status(500).send("Ошибка сервера");

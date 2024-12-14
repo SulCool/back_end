@@ -53,19 +53,18 @@
                             <input type="datetime-local" id="end-time" name="end-time"
                                 value="<%= (new Date()).toISOString().slice(0, 16) %>"
                                 min="<%= (new Date()).toISOString().slice(0, 16) %>" />
-                            <select name="executor" class="selector2 text-black text-font">
-                                <% if (users.length> 0) { %>
-                                    <% for (let i of users) { %>
-                                        <option class="text-font text-black">
-                                            <%= i.Surname %>
-                                                <%= i.Name %>
-                                                    <%= i.Patronymic %>
-                                        </option>
+                                <select name="executor" class="selector2 text-black text-font">
+                                    <% if (users.length > 0) { %>
+                                        <% for (let i of users.filter(user => user.Login !== currentUser.Login)) { %>
+                                            <option class="text-font text-black">
+                                                <%= i.Surname %> <%= i.Name %> <%= i.Patronymic %>
+                                            </option>
                                         <% } %>
-                                            <% } else { %>
-                                                <option>Нет доступных пользователей</option>
-                                                <% } %>
-                            </select>
+                                    <% } else { %>
+                                        <option>Нет доступных пользователей</option>
+                                    <% } %>
+                                </select>
+                                
                             <button class="btn" type="submit">
                                 <span class="transition"></span>
                                 <span class="gradient"></span>
@@ -80,13 +79,14 @@
                     <form action="/" method="GET">
                         <select class="dropbtn selector text-black text-font" id="userSelector" name="user" onchange="this.form.submit()">
                             <option class="text-font selector1 text-white" value="all">Все</option>
-                            <% for (let i of users) { %>
+                            <% for (let i of users.filter(user => user.Login !== currentUser.Login)) { %>
                                 <option class="text-font selector1 text-white" value="<%= i.Login %>" <%= i.Login === selectedUser ? 'selected' : '' %> >
                                     <%= i.Surname %> <%= i.Name %> <%= i.Patronymic %>
                                 </option>
                             <% } %>
                         </select>
                     </form>
+                    
                     
                     <div class="dropdown">
                         <img src="/icons/sort.png" class="dropbtn">

@@ -8,6 +8,7 @@ export function get_users(query, params, callback) {
     db.all(query, params, (err, rows) => {
         if (err) {
             console.error("Ошибка выполнения запроса:", err.message);
+            console.error("Ошибка базы данных:", err.message);
             callback(err, null);
         } else {
             callback(null, rows);
@@ -29,21 +30,16 @@ export function delete_user(id, callback) {
             console.error("Ошибка SQL при удалении пользователя:", err.message);
             return callback(err);
         }
-        console.log(`Пользователь с id=${id} удалён.`);
         callback(null);
     });
 }
 export function update_user(oldLogin, newLogin, surname, name, patronymic, post, role, callback) {
-    console.log("Обновление пользователя:", oldLogin, newLogin, surname, name, patronymic, post, role);
-
     sql = `UPDATE users SET Login = ?, Surname = ?, Name = ?, Patronymic = ?, Role = ?, Post = ? WHERE Login = ?`;
     db.run(sql, [newLogin, surname, name, patronymic, role, post, oldLogin], function (err) {
         if (err) {
             console.error('Ошибка SQL при обновлении пользователя:', err.message);
             return callback(err, null);
         }
-
-        console.log("SQL запрос выполнен, количество измененных строк:", this.changes);
         callback(null, this.changes); 
     });
 }
@@ -74,7 +70,6 @@ export function delete_task(taskId, callback) {
             console.error("Ошибка при удалении задачи:", err.message);
             return callback(err);
         }
-        console.log(`Задача с id=${taskId} удалена`);
         callback(null);
     });
 }

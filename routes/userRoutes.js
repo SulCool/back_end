@@ -1,11 +1,15 @@
 import express from "express";
-import { get_users, get_tasks_creator, get_tasks_executer } from "../database/bd.js";
+import { add_user,update_user,delete_user,get_users, get_tasks_creator, get_tasks_executer } from "../database/bd.js";
 export const urlencodedParser = express.urlencoded({ extended: false });
 export const __dirname = import.meta.dirname;
 const router = express.Router();
 
 router.get("/", (req, res) => {
     const currentUser = res.locals.user;
+    if (!currentUser) {
+        console.error("Текущий пользователь не определён.");
+        return res.status(401).send("Необходима авторизация");
+    }
     const sortOrder = req.query.sort || 'asc';
     const selectedUser = req.query.user || 'all';
     const usersQuery = "SELECT Surname, Name, Patronymic, Login FROM users";
@@ -14,29 +18,32 @@ router.get("/", (req, res) => {
             console.error("Ошибка при загрузке пользователей:", err.message);
             return res.status(500).send("Ошибка сервера");
         }
+        const filteredUsers = users.filter(user => user.Login !== currentUser.Login && user.Login !== 'a');
         let executer = "";
-        if (currentUser && currentUser.Surname && currentUser.Name && currentUser.Patronymic) {
+        if (currentUser.Surname && currentUser.Name && currentUser.Patronymic) {
             executer = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
         }
         get_tasks_creator(currentUser.Login, (err, taskcreators) => {
+            if (err) {
+                console.error("Ошибка при получении задач создателя:", err.message);
+                return res.status(500).send("Ошибка сервера");
+            }
             get_tasks_executer(executer, (err, tasksinworks) => {
                 if (err) {
                     console.error("Ошибка при получении задач исполнителя:", err.message);
-                    return res.status(500).send("Ошибка при получении задач");
+                    return res.status(500).send("Ошибка сервера");
                 }
                 if (selectedUser !== 'all') {
-                    tasksinworks = tasksinworks.filter(tasksinworks => tasksinworks.Creator === selectedUser);
+                    tasksinworks = tasksinworks.filter(task => task.Creator === selectedUser);
                 }
                 tasksinworks.sort((a, b) => {
                     const titleA = (a.Title && a.Title.toLowerCase()) || '';
                     const titleB = (b.Title && b.Title.toLowerCase()) || '';
-                    if (sortOrder === 'asc') {
-                        return titleA.localeCompare(titleB);
-                    } else {
-                        return titleB.localeCompare(titleA);
-                    }
+                    return sortOrder === 'asc'
+                        ? titleA.localeCompare(titleB)
+                        : titleB.localeCompare(titleA);
                 });
-                res.render("main", { tasksinworks, users, currentUser, taskcreators, sortOrder, selectedUser });
+                res.render("main", { tasksinworks, users: filteredUsers, currentUser, taskcreators, sortOrder, selectedUser });
             });
         });
     });

@@ -9,6 +9,9 @@ router.post("/add_task", urlencodedParser, (req, res) => {
     if (!title || !description || !startTime || !endTime || !executor) {
         return res.status(400).send("Все поля должны быть заполнены");
     }
+    if (executor === currentUser.Login) {
+        return res.status(400).send("Вы не можете назначить задачу самому себе");
+    }
     const addTaskQuery = `
         INSERT INTO tasks (title, Desc, Date_start, Date_end, creator, executer, Creator_name)
         VALUES (?, ?, ?, ?, ?, ?, ?)

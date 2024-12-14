@@ -1,6 +1,5 @@
 import sqlite3 from "sqlite3";
 let sql;
-
 const db = new sqlite3.Database("./main.db", sqlite3.OPEN_READWRITE, (err) => {
     if(err) return console.error(err.message);
 });
@@ -15,8 +14,6 @@ export function get_users(query, params, callback) {
         }
     });
 }
-
-
 export function add_user(name = "name", surname = "surname", patronymic = "patronymic", login = "login", role = "role", post = "post") {
     sql = "INSERT INTO users(Login, Surname, Name, Patronymic, Role, Post) VALUES(?, ?, ?, ?, ?, ?)";
     db.run(sql, [login, surname, name, patronymic, role, post],
@@ -25,7 +22,6 @@ export function add_user(name = "name", surname = "surname", patronymic = "patro
         }
     );
 }
-
 export function delete_user(id, callback) {
     const sql = "DELETE FROM users WHERE id = ?";
     db.run(sql, [id], function(err) {
@@ -37,7 +33,6 @@ export function delete_user(id, callback) {
         callback(null);
     });
 }
-
 export function update_user(oldLogin, newLogin, surname, name, patronymic, post, role, callback) {
     console.log("Обновление пользователя:", oldLogin, newLogin, surname, name, patronymic, post, role);
 
@@ -52,7 +47,6 @@ export function update_user(oldLogin, newLogin, surname, name, patronymic, post,
         callback(null, this.changes); 
     });
 }
-
 export function add_task(query, params, callback) {
     db.run(query, params, function (err) {
         if (err) {
@@ -61,21 +55,18 @@ export function add_task(query, params, callback) {
         callback(null, this.lastID);
     });
 }
-
 export function get_tasks_executer(user, callback) {
     const query = 'SELECT * FROM tasks WHERE Executer = ?';
     db.all(query, [user], (err,rows)=>{
         callback(err,rows);        
     });
 }
-
 export function get_tasks_creator(user, callback) {
     const query = 'SELECT * FROM tasks WHERE Creator = ?';
     db.all(query, [user], (err,rows)=>{
         callback(err,rows);        
     });
 }
-
 export function delete_task(taskId, callback) {
     const sql = "DELETE FROM tasks WHERE id = ?";
     db.run(sql, [taskId], function (err) {
@@ -87,7 +78,6 @@ export function delete_task(taskId, callback) {
         callback(null);
     });
 }
-
 export function complete_task(query, params, callback) {
     db.run(query, params, function (err) {
         callback(err);

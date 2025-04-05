@@ -1,0 +1,1399 @@
+Код игрока:
+@tool
+extends CharacterBody3D
+
+var BasicFPSPlayerScene : PackedScene = preload("basic_player_head.tscn")
+var addedHead = false
+@onready var basic_fps_player: CharacterBody3D = $"."
+@onready var fps_c19: Node3D = $"fps-c19"
+@onready var fps_knife: Node3D = $"fps-knife"
+@onready var impact_effect_3d: GPUParticles3D = $ImpactEffect3d
+@onready var aim_hud: Node = $AimHud
+@onready var animation_player: AnimationPlayer = $AnimationPlayer
+@onready var head: Node3D = $Head
+@export var team = ""
+var scene_ready = false
+var shoot_range: float = 0.0
+var shoot_damage: float = 0.0
+var knife_range: float = 2.0
+var knife_damage: float = 50.0
+var shoot_cooldown: float = 0
+var can_shoot: bool = true
+var current_weapon: String = "fps_c19"
+var is_sitting: bool = false
+var is_dead: bool = false
+var health: float = 100.0
+var is_in_crouch_state: bool = false
+var is_switching_weapon: bool = false
+var ammo: int = 30
+var max_ammo: int = 30
+var ping: int = 0
+var wins: int = 0
+var losses: int = 0
+var saved_peer = null
+var take_animation_duration: float = 0.5
+var hide_animation_duration: float = 0.5
+var attack_animation_duration: float = 0.5
+
+@export_category("Mouse Capture")
+@export var CAPTURE_ON_START := true
+@export_category("Movement")
+@export_subgroup("Settings")
+@export var SPEED := 5.0
+@export var CROUCH_SPEED := 2.0
+@export var ACCEL := 50.0
+@export var IN_AIR_SPEED := 3.0
+@export var IN_AIR_ACCEL := 5.0
+@export var JUMP_VELOCITY := 4.5
+@export_subgroup("Head Bob")
+@export var HEAD_BOB := true
+@export var HEAD_BOB_FREQUENCY := 0.3
+@export var HEAD_BOB_AMPLITUDE := 0.01
+@export_subgroup("Clamp Head Rotation")
+@export var CLAMP_HEAD_ROTATION := true
+@export var CLAMP_HEAD_ROTATION_MIN := -90.0
+@export var CLAMP_HEAD_ROTATION_MAX := 90.0
+@export_category("Key Binds")
+@export_subgroup("Mouse")
+@export var MOUSE_ACCEL := true
+@export var KEY_BIND_MOUSE_SENS := 0.005
+@export var KEY_BIND_MOUSE_ACCEL := 50
+@export_subgroup("Movement")
+@export var KEY_BIND_UP := "ui_up"
+@export var KEY_BIND_LEFT := "ui_left"
+@export var KEY_BIND_RIGHT := "ui_right"
+@export var KEY_BIND_DOWN := "ui_down"
+@export var KEY_BIND_JUMP := "ui_accept"
+@export var KEY_BIND_CROUCH := "ui_down"
+@export var KEY_BIND_MAIN_W := "MainW"
+@export var KEY_BIND_SECONDARY_W := "SecW"
+@export var KEY_BIND_THIRD_W := "ThirdW"
+@export_category("Advanced")
+@export var UPDATE_PLAYER_ON_PHYS_STEP := true
+var overview_camera = get_node_or_null("/root/SceneOne/OverviewCamera")
+var spectating_index: int = -1
+var spectating_players: Array = []
+var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
+var speed = SPEED
+var accel = ACCEL
+var rotation_target_player : float
+var rotation_target_head : float
+var head_start_pos : Vector3
+var tick = 0
+var crouch_height: float = 0.5
+var target_head_position_y: float = 0.0
+var server_sync_priority: bool = false
+var last_position = Vector3.ZERO
+var last_velocity = Vector3.ZERO
+var last_body_quat = Quaternion.IDENTITY
+var last_head_quat = Quaternion.IDENTITY
+var sync_timer = 0.0
+var sync_interval = 0.1
+var initial_team_set = false
+
+func _enter_tree():
+	if find_child("Head"):
+		addedHead = true
+	if Engine.is_editor_hint() && !addedHead:
+		var s = BasicFPSPlayerScene.instantiate()
+		add_child(s)
+		s.owner = get_tree().edited_scene_root
+		addedHead = true
+		
+func _process(delta):
+	if Engine.is_editor_hint():
+		return
+
+	if not multiplayer or multiplayer.multiplayer_peer == null or multiplayer.multiplayer_peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
+		return
+
+	if multiplayer.get_unique_id() == get_multiplayer_authority() and not is_dead and scene_ready and not server_sync_priority:
+		sync_timer += delta
+		if sync_timer >= sync_interval:
+			rpc("sync_player", global_position, velocity, quaternion, head.quaternion, current_weapon, is_sitting, is_dead, health, team, wins, losses)
+			sync_timer = 0.0
+		if velocity.length() > 0.01:  
+			sync_timer = min(sync_timer, sync_interval * 0.5)  
+			
+func _ready():
+	if Engine.is_editor_hint():
+		return
+	collision_layer = 2
+	collision_mask = 3
+	print("Игрок ", name, " слой: ", collision_layer, " маска: ", collision_mask)
+	if CAPTURE_ON_START:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	head_start_pos = head.position
+	target_head_position_y = head.position.y
+	
+	print("Игрок ", name, " authority: ", get_multiplayer_authority(), ", unique_id: ", multiplayer.get_unique_id() if multiplayer else "нет мультиплеера")
+	
+	if is_inside_tree():
+		overview_camera = get_node_or_null("/root/SceneOne/OverviewCamera")
+		if not overview_camera:
+			print("Предупреждение: OverviewCamera не найдена в _ready для ", name)
+	
+		var drop_coll = get_node_or_null("/root/SceneOne/DropColl")
+		if drop_coll and drop_coll is Area3D:
+			drop_coll.body_entered.connect(_on_drop_coll_body_entered)
+			print("Игрок ", name, " подключён к сигналу DropColl")
+		else:
+			print("Предупреждение: DropColl не найден или не является Area3D для ", name)
+	
+	if multiplayer and multiplayer.get_unique_id() == get_multiplayer_authority():
+		var camera = head.get_node("Camera3D")
+		if camera:
+			camera.current = true
+		fps_c19.visible = true
+		fps_knife.visible = false
+		current_weapon = "fps_c19"
+		health = 100.0
+		initial_team_set = true
+		update_team_color()
+		if not aim_hud:
+			aim_hud = get_node_or_null("AimHud")  
+		if aim_hud:
+			aim_hud.visible = true
+			aim_hud.update_hp(int(health))
+			aim_hud.update_ammo(ammo, max_ammo)
+			aim_hud.update_ping(ping)
+			aim_hud.update_w_l(wins, losses)
+			print("HUD инициализирован для ", name)
+		else:
+			print("Критическая ошибка: aim_hud не найден в _ready для ", name)
+	else:
+		head.get_node("Camera3D").current = false
+		if aim_hud:
+			aim_hud.visible = false
+			print("HUD отключён для неуправляемого игрока ", name)
+	scene_ready = true
+	
+func _on_drop_coll_body_entered(body):
+	if body == self and not is_dead:
+		print("Игрок ", name, " вошёл в DropColl!")
+		die()
+
+func _physics_process(delta):
+	if Engine.is_editor_hint():
+		return
+
+	if not multiplayer or multiplayer.multiplayer_peer == null or multiplayer.multiplayer_peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
+		print("Мультиплеер не активен, пропускаем физику для ", name)
+		if not multiplayer.is_server() and not is_dead:
+			var peer = ENetMultiplayerPeer.new()
+			var scene_one = get_node_or_null("/root/SceneOne")
+			var ip = scene_one.server_ip if scene_one else "127.0.0.1"
+			var port = scene_one.server_port if scene_one else 49652
+			var error = peer.create_client(ip, port)
+			if error == OK:
+				multiplayer.multiplayer_peer = peer
+				print("Соединение восстановлено в _physics_process для ", name, " к ", ip, ":", port)
+			else:
+				print("Ошибка восстановления соединения в _physics_process: ", error)
+		return
+		
+	if multiplayer.multiplayer_peer == null or multiplayer.multiplayer_peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
+		print("Мультиплеер не активен, пропускаем физику для ", name)
+		if not multiplayer.is_server() and not is_dead:
+			var peer = ENetMultiplayerPeer.new()
+			var error = peer.create_client("127.0.0.1", 49652)
+			if error == OK:
+				multiplayer.multiplayer_peer = peer
+				print("Соединение восстановлено в _physics_process для ", name)
+			else:
+				print("Ошибка восстановления соединения в _physics_process: ", error)
+		return
+		
+	if not is_inside_tree():
+		print("Игрок ", name, " не в дереве, пропускаем физику")
+		return
+
+	if multiplayer.get_unique_id() == get_multiplayer_authority() and not is_dead:
+		var prev_position = global_position
+
+		move_player(delta)
+		rotate_player(delta)
+		attack(delta)
+		handle_crouch()
+		handle_weapon_switch()
+
+		if scene_ready and not server_sync_priority and prev_position.distance_to(global_position) > 0.01:
+			rpc("sync_player", global_position, velocity, quaternion, head.quaternion, current_weapon, is_sitting, is_dead, health, team, wins, losses)
+
+	else:
+		if not is_dead and not is_sitting and last_velocity.length() > 0.01:
+			global_position = last_position + last_velocity * delta
+		elif is_dead or is_sitting:
+			global_position = last_position 
+
+		if last_body_quat:
+			quaternion = quaternion.slerp(last_body_quat, 10 * delta)
+		if last_head_quat:
+			head.quaternion = head.quaternion.slerp(last_head_quat, 10 * delta)
+
+	if abs(head.position.y - target_head_position_y) > 0.01:
+		head.position.y = lerp(head.position.y, target_head_position_y, 10 * delta)
+
+	if HEAD_BOB and multiplayer.get_unique_id() == get_multiplayer_authority() and not is_dead and velocity and is_on_floor():
+		head_bob_motion()
+
+	reset_head_bob(delta)
+	
+func _input(event):
+	if Engine.is_editor_hint():
+		return
+	if event is InputEventMouseMotion && Input.mouse_mode == Input.MOUSE_MODE_CAPTURED && not is_dead:
+		set_rotation_target(event.relative)
+		
+		
+func die():
+	is_dead = true
+	velocity = Vector3.ZERO
+	
+	if multiplayer.get_unique_id() == get_multiplayer_authority():
+		rpc("sync_player", global_position, velocity, quaternion, head.quaternion, current_weapon, is_sitting, is_dead, health, team, wins, losses)
+	
+	if animation_player and not animation_player.is_playing():
+		animation_player.play("Die")
+		await animation_player.animation_finished
+	
+	visible = false
+	if multiplayer.get_unique_id() == get_multiplayer_authority():
+		var camera = head.get_node_or_null("Camera3D")
+		if camera:
+			camera.current = false
+			print("Камера отключена для клиента ", name)
+		if aim_hud:
+			aim_hud.visible = false
+			print("HUD отключён для ", name)
+		
+		if is_inside_tree():
+			if not overview_camera:
+				overview_camera = get_node_or_null("/root/SceneOne/OverviewCamera")
+			if overview_camera and is_instance_valid(overview_camera):
+				var start_transform = camera.global_transform
+				var end_transform = overview_camera.global_transform
+				var transition_time = 1.0
+				var elapsed_time = 0.0
+				
+				while elapsed_time < transition_time:
+					elapsed_time += get_process_delta_time()
+					var t = elapsed_time / transition_time
+					camera.global_transform = start_transform.interpolate_with(end_transform, t)
+					await get_tree().process_frame
+				
+				overview_camera.current = true
+				print("Обзорная камера активирована для ", name)
+			else:
+				print("Ошибка: OverviewCamera не найдена для ", name)
+		else:
+			print("Игрок ", name, " не в дереве, обзорная камера не активирована")
+	
+	if multiplayer.is_server():
+		print("Сервер: Игрок ", name, " умер, проверяем статус команд")
+		get_parent().check_team_status()
+		rpc("remove_player")
+	
+	set_process(false)
+	set_physics_process(false)
+	
+@rpc("any_peer", "call_local")
+func sync_scores(wins_count: int, losses_count: int):
+	wins = wins_count
+	losses = losses_count
+	if multiplayer.get_unique_id() == get_multiplayer_authority():
+		if not aim_hud:
+			aim_hud = get_node_or_null("AimHud") 
+		if aim_hud:
+			aim_hud.update_w_l(wins, losses)
+			print("HUD обновлён для ", name, ": W/L=", wins, "/", losses)
+		else:
+			print("Ошибка: aim_hud не найден для ", name, " при обновлении счёта")
+	else:
+		print("Счёт синхронизирован для ", name, ": W/L=", wins, "/", losses, " (не локальный игрок)")
+	
+func update_weapon_visibility():
+	fps_c19.visible = (current_weapon == "fps_c19")
+	fps_knife.visible = (current_weapon == "fps_knife")
+	if aim_hud:
+		aim_hud.ammo.visible = (current_weapon == "fps_c19")
+
+
+func set_rotation_target(mouse_motion : Vector2):
+	rotation_target_player += -mouse_motion.x * KEY_BIND_MOUSE_SENS
+	rotation_target_head += -mouse_motion.y * KEY_BIND_MOUSE_SENS
+	if CLAMP_HEAD_ROTATION:
+		rotation_target_head = clamp(rotation_target_head, deg_to_rad(CLAMP_HEAD_ROTATION_MIN), deg_to_rad(CLAMP_HEAD_ROTATION_MAX))
+
+func rotate_player(delta):
+	if MOUSE_ACCEL:
+		quaternion = quaternion.slerp(Quaternion(Vector3.UP, rotation_target_player), KEY_BIND_MOUSE_ACCEL * delta)
+		head.quaternion = head.quaternion.slerp(Quaternion(Vector3.RIGHT, rotation_target_head), KEY_BIND_MOUSE_ACCEL * delta)
+	else:
+		quaternion = Quaternion(Vector3.UP, rotation_target_player)
+		head.quaternion = Quaternion(Vector3.RIGHT, rotation_target_head)
+
+func move_player(delta):
+	if not is_on_floor():
+		speed = IN_AIR_SPEED
+		accel = IN_AIR_ACCEL
+		velocity.y -= gravity * delta
+	else:
+		speed = SPEED if not is_sitting else CROUCH_SPEED
+		accel = ACCEL
+
+	if Input.is_action_just_pressed(KEY_BIND_JUMP) and is_on_floor() and not is_sitting:
+		velocity.y = JUMP_VELOCITY
+
+	var input_dir = Input.get_vector(KEY_BIND_LEFT, KEY_BIND_RIGHT, KEY_BIND_UP, KEY_BIND_DOWN)
+	var direction = (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
+	
+	velocity.x = move_toward(velocity.x, direction.x * speed, accel * delta)
+	velocity.z = move_toward(velocity.z, direction.z * speed, accel * delta)
+	move_and_slide()
+
+func head_bob_motion():
+	var pos = Vector3.ZERO
+	pos.y += sin(tick * HEAD_BOB_FREQUENCY) * HEAD_BOB_AMPLITUDE
+	pos.x += cos(tick * HEAD_BOB_FREQUENCY/2) * HEAD_BOB_AMPLITUDE * 2
+	head.position += pos
+
+func reset_head_bob(delta):
+	if head.position == head_start_pos:
+		return
+	head.position = lerp(head.position, head_start_pos, 2 * (1/HEAD_BOB_FREQUENCY) * delta)
+
+var impact_effect_scene : PackedScene = preload("res://addons/shooter_kit/effects/ImpactEffect3D.tscn")
+
+func handle_weapon_switch():
+	if Input.is_action_just_pressed(KEY_BIND_MAIN_W):
+		pass
+	elif Input.is_action_just_pressed(KEY_BIND_SECONDARY_W):
+		if current_weapon != "fps_c19" and not is_switching_weapon:
+			is_switching_weapon = true
+			if animation_player:
+				animation_player.play("Idle")
+			var current_anim_tree = get_current_weapon_anim_tree()
+			if current_anim_tree and current_weapon != "none":
+				var playback = current_anim_tree.get("parameters/playback")
+				if playback:
+					playback.travel("hide")
+					await get_tree().create_timer(hide_animation_duration).timeout
+					if current_weapon == "fps_c19":
+						fps_c19.visible = false
+					elif current_weapon == "fps_knife":
+						fps_knife.visible = false
+			current_weapon = "fps_c19"
+			fps_c19.visible = true
+			fps_knife.visible = false
+			var new_anim_tree = get_current_weapon_anim_tree()
+			if new_anim_tree:
+				var playback = new_anim_tree.get("parameters/playback")
+				if playback:
+					playback.travel("take")
+					await get_tree().create_timer(take_animation_duration).timeout
+			is_switching_weapon = false
+			if aim_hud:
+				ammo = 30
+				aim_hud.update_ammo(ammo, max_ammo)
+				aim_hud.ammo.visible = true
+	elif Input.is_action_just_pressed(KEY_BIND_THIRD_W):
+		if current_weapon != "fps_knife" and not is_switching_weapon:
+			is_switching_weapon = true
+			if animation_player:
+				animation_player.play("Idle")
+			var current_anim_tree = get_current_weapon_anim_tree()
+			if current_anim_tree and current_weapon != "none":
+				var playback = current_anim_tree.get("parameters/playback")
+				if playback:
+					playback.travel("hide")
+					await get_tree().create_timer(hide_animation_duration).timeout
+					if current_weapon == "fps_c19":
+						fps_c19.visible = false
+					elif current_weapon == "fps_knife":
+						fps_knife.visible = false
+			current_weapon = "fps_knife"
+			fps_c19.visible = false
+			fps_knife.visible = true
+			var new_anim_tree = get_current_weapon_anim_tree()
+			if new_anim_tree:
+				var playback = new_anim_tree.get("parameters/playback")
+				if playback:
+					playback.travel("take")
+					await get_tree().create_timer(take_animation_duration).timeout
+			is_switching_weapon = false
+			if aim_hud:
+				aim_hud.ammo.visible = false
+
+func get_current_weapon_anim_tree():
+	if current_weapon == "fps_c19":
+		return fps_c19.get_node("AnimationTree")
+	elif current_weapon == "fps_knife":
+		return fps_knife.get_node("AnimationTree")
+	return null
+
+func attack(delta):
+	if Input.is_action_just_pressed("Fire") and not is_dead and multiplayer.get_unique_id() == get_multiplayer_authority():
+		print("Attack triggered by ", multiplayer.get_unique_id())
+		if current_weapon == "fps_c19" and ammo > 0:
+			ammo -= 1
+			aim_hud.update_ammo(ammo, max_ammo)
+			rpc("play_attack_animation", "fps_c19")
+			shoot()
+		elif current_weapon == "fps_knife":
+			rpc("play_attack_animation", "fps_knife")
+			knife_attack()
+
+@rpc("any_peer", "call_local")
+func play_attack_animation(weapon):
+	var anim_tree = fps_c19.get_node("AnimationTree") if weapon == "fps_c19" else fps_knife.get_node("AnimationTree")
+	if anim_tree:
+		var playback = anim_tree.get("parameters/playback")
+		if playback:
+			playback.travel("fire")
+			await get_tree().create_timer(attack_animation_duration).timeout
+			playback.travel("idle")
+
+func shoot():
+	if multiplayer.get_unique_id() == get_multiplayer_authority():
+		var direction = -head.global_transform.basis.z
+		print("Shoot called by ", multiplayer.get_unique_id(), " at ", global_position, " direction ", direction)
+		if multiplayer.is_server():
+			server_shoot(global_position, direction)
+		else:
+			rpc_id(1, "server_shoot", global_position, direction)
+
+func knife_attack():
+	if multiplayer.get_unique_id() == get_multiplayer_authority():
+		var direction = -head.global_transform.basis.z
+		print("Knife attack called by ", multiplayer.get_unique_id(), " at ", global_position, " direction ", direction)
+		if multiplayer.is_server():
+			server_knife_attack(global_position, direction)
+		else:
+			rpc_id(1, "server_knife_attack", global_position, direction)  
+
+@rpc("any_peer", "call_local")
+func take_damage(damage):
+	if multiplayer.is_server():
+		if not is_dead:
+			health -= damage
+			print("Игрок ", name, " получил урон ", damage, ". Здоровье: ", health)
+			if multiplayer.get_unique_id() == get_multiplayer_authority() and aim_hud:
+				aim_hud.update_hp(int(health))
+			if health <= 0:
+				die()
+			rpc("sync_player", global_position, velocity, quaternion, head.quaternion, current_weapon, is_sitting, is_dead, health, team, wins, losses)
+			
+@rpc("any_peer", "call_local")
+func remove_player():
+	if is_dead: 
+		visible = false
+		set_physics_process(false)
+		set_process(false)
+		if multiplayer.get_unique_id() == get_multiplayer_authority():
+			var camera = head.get_node("Camera3D")
+			if camera:
+				camera.current = false
+			if head:
+				head.visible = false
+			if aim_hud:
+				aim_hud.visible = false
+		print("Игрок ", name, " скрыт и отключён")
+		if multiplayer.is_server():
+			await get_tree().create_timer(1.0).timeout
+			queue_free()
+	else:
+		print("Ошибка: remove_player вызван для живого игрока ", name)
+		
+func handle_crouch():
+	if Input.is_action_pressed(KEY_BIND_CROUCH) and is_on_floor() and not is_dead and not is_in_crouch_state:
+		if not is_sitting:
+			is_sitting = true
+			is_in_crouch_state = true
+			if animation_player:
+				animation_player.play("Crouch")
+				target_head_position_y = head_start_pos.y - crouch_height
+	elif not Input.is_action_pressed(KEY_BIND_CROUCH) and is_in_crouch_state and not is_dead:
+		is_sitting = false
+		is_in_crouch_state = false
+		if animation_player:
+			animation_player.play("Idle")
+			target_head_position_y = head_start_pos.y
+
+func update_team_color():
+	if multiplayer == null or multiplayer.multiplayer_peer == null:
+		print("Мультиплеер не инициализирован, пропускаем update_team_color для ", name)
+		return
+	
+	if multiplayer.get_unique_id() != get_multiplayer_authority() or not initial_team_set:
+		var body = find_child("Body", true, false)
+		if body and body is MeshInstance3D:
+			var material = body.get_surface_override_material(0)
+			if not material:
+				material = StandardMaterial3D.new()
+				body.set_surface_override_material(0, material)
+			if team == "Blue":
+				material.albedo_color = Color(0, 0, 1)
+			elif team == "Red":
+				material.albedo_color = Color(1, 0, 0)
+			else:
+				material.albedo_color = Color(0.5, 0.5, 0.5)
+			if multiplayer.get_unique_id() == get_multiplayer_authority():
+				initial_team_set = true 
+		else:
+			print("Не удалось найти Body для изменения цвета игрока ", name)
+		
+		
+@rpc("any_peer", "call_local")
+func server_shoot(shooter_pos, direction):
+	if multiplayer.is_server():
+		var shooter_id = multiplayer.get_remote_sender_id() if multiplayer.get_remote_sender_id() != 0 else 1
+		var shooter_node = get_parent().get_node_or_null(str(shooter_id))
+		if not shooter_node:
+			print("Сервер: Игрок ", shooter_id, " не найден!")
+			return
+
+		var shoot_range = 50.0
+		var ray = RayCast3D.new()
+		ray.collision_mask = 3
+		get_parent().add_child(ray)
+		ray.global_position = shooter_pos
+		ray.target_position = direction * shoot_range
+		ray.force_raycast_update()
+
+		if ray.is_colliding():
+			var target = ray.get_collider()
+			if is_instance_valid(target) and target.has_method("take_damage") and not target.is_dead:
+				if target.team != shooter_node.team and target.team != "":
+					target.rpc("take_damage", 20.0)
+					target.rpc("sync_player", target.global_position, target.velocity, target.quaternion, target.head.quaternion, target.current_weapon, target.is_sitting, target.is_dead, target.health, target.team, target.wins, target.losses)
+					print("Сервер: Игрок ", shooter_id, " нанёс урон 20 игроку ", target.name)
+		ray.queue_free()
+
+@rpc("any_peer", "call_local")
+func server_knife_attack(shooter_pos, direction):
+	if multiplayer.is_server():
+		var shooter_id = multiplayer.get_remote_sender_id() if multiplayer.get_remote_sender_id() != 0 else 1
+		var shooter_node = get_parent().get_node_or_null(str(shooter_id))
+		if not shooter_node:
+			print("Сервер: Игрок ", shooter_id, " не найден!")
+			return
+		var ray = RayCast3D.new()
+		ray.collision_mask = 1
+		get_parent().add_child(ray)
+		ray.global_position = shooter_pos
+		ray.target_position = direction * knife_range
+		ray.force_raycast_update()
+		if ray.is_colliding():
+			var target = ray.get_collider()
+			if is_instance_valid(target) and target.has_method("take_damage"):
+				if target.team != shooter_node.team:
+					target.rpc("take_damage", knife_damage)
+					target.rpc("sync_player", target.global_position, target.velocity, target.quaternion, target.head.quaternion, target.current_weapon, target.is_sitting, target.is_dead, target.health, target.team, target.wins, target.losses)
+					print("Сервер: Игрок ", shooter_id, " нанёс урон ножом ", knife_damage, " игроку ", target.name)
+		ray.queue_free()
+		
+@rpc("any_peer", "call_local")
+func respawn_player(team: String, spawn_position: Vector3, wins: int, losses: int):
+	if multiplayer.get_unique_id() == get_multiplayer_authority():
+		if not is_dead:
+			print("respawn_player уже выполнен для ", name, ", пропускаем")
+			return
+		print("respawn_player вызван для ", name, " с командой ", team, " на позиции ", spawn_position, " и счётом W/L=", wins, "/", losses)
+		self.team = team
+		global_position = spawn_position
+		self.wins = wins  
+		self.losses = losses  
+		is_dead = false
+		health = 100.0
+		velocity = Vector3.ZERO
+		initial_team_set = true
+		update_team_color()
+		visible = true
+		var camera = head.get_node_or_null("Camera3D")
+		if camera:
+			camera.current = true
+			print("Камера активирована для клиента ", name)
+		if is_inside_tree():
+			if not overview_camera:
+				overview_camera = get_node_or_null("/root/SceneOne/OverviewCamera")
+			if overview_camera and is_instance_valid(overview_camera):
+				overview_camera.current = false
+				print("Обзорная камера отключена для ", name)
+		if not aim_hud:
+			aim_hud = get_node_or_null("AimHud") 
+		if aim_hud:
+			aim_hud.visible = true
+			aim_hud.update_hp(int(health))
+			aim_hud.update_ammo(ammo, max_ammo)
+			aim_hud.update_ping(ping)
+			aim_hud.update_w_l(wins, losses) 
+			print("HUD включён и обновлён для ", name, " с W/L=", wins, "/", losses)
+		else:
+			print("Критическая ошибка: aim_hud не найден при возрождении для ", name)
+		print("Клиент ", name, " возродился с HP=", health, " и счётом W/L=", wins, "/", losses)
+		set_physics_process(true)
+		set_process(true)
+		rpc("sync_player", global_position, velocity, quaternion, head.quaternion, current_weapon, is_sitting, is_dead, health, team, wins, losses)
+		
+@rpc("any_peer", "unreliable")
+func sync_player(pos, vel, body_quat, head_quat, weapon, sitting, dead, hp, team_name, wins_count, losses_count):
+	health = hp
+	is_dead = dead
+	wins = wins_count
+	losses = losses_count
+	visible = not dead
+
+	last_position = pos
+	last_velocity = vel
+	last_body_quat = body_quat
+	last_head_quat = head_quat
+
+	if multiplayer.get_unique_id() != get_multiplayer_authority():
+		global_position = pos
+		velocity = vel
+		quaternion = body_quat
+		head.quaternion = head_quat
+		if not is_dead:
+			set_physics_process(true)
+		else:
+			set_physics_process(false)
+	else:
+		pass
+
+	current_weapon = weapon
+	is_sitting = sitting
+	team = team_name 
+	update_weapon_visibility()
+	update_team_color()  
+
+	if multiplayer.get_unique_id() == get_multiplayer_authority():
+		if aim_hud:
+			aim_hud.update_hp(int(health))
+			aim_hud.update_ammo(ammo, max_ammo)
+			aim_hud.update_ping(ping)
+			aim_hud.update_w_l(wins, losses)
+			if is_dead and not animation_player.is_playing():
+				animation_player.play("Die")
+				set_physics_process(false)
+			elif not is_dead:
+				set_physics_process(true)
+				if animation_player and not animation_player.is_playing():
+					animation_player.play("Idle")
+	elif is_dead and animation_player and not animation_player.is_playing():
+		animation_player.play("Die")
+	elif is_sitting and animation_player:
+		animation_player.play("Crouch")
+	elif animation_player and not animation_player.is_playing():
+		animation_player.play("Idle")
+		
+
+Код Меню:
+extends Node3D
+
+@onready var host: Button = $CanvasLayer/Control/Host
+@onready var connected: Button = $CanvasLayer/Control/Connect
+@onready var exit: Button = $CanvasLayer/Control/Exit
+@onready var blue: Button = $CanvasLayer/Control/Blue
+@onready var red: Button = $CanvasLayer/Control/Red
+@onready var port_input: TextEdit = $CanvasLayer/Control/PortInput
+@onready var back_port: Button = $CanvasLayer/Control/BackPort
+@onready var connect_port: Button = $CanvasLayer/Control/ConnectPort
+@onready var back_host: Button = $CanvasLayer/Control/BackHost
+@onready var port_label: TextEdit = $CanvasLayer/Control/Port
+
+var selected_team = "" 
+var mouse_sensitivity = 0.005
+var default_port = 4242
+var max_players = 4
+var is_connecting = false
+var peer = null
+var local_ip = "127.0.0.1" 
+var server_port = 0 
+
+func _ready():
+	blue.visible = false 
+	red.visible = false   
+	host.visible = true
+	connected.visible = true
+	exit.visible = true
+	port_label.visible = false
+	port_input.visible = false
+	back_port.visible = false
+	connect_port.visible = false
+	back_host.visible = false
+	get_node("/root/MultiplayerManager").start_game.connect(_on_start_game)
+	reset_network()
+	request_local_ip() 
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+
+func reset_network():
+	if multiplayer.multiplayer_peer != null:
+		multiplayer.multiplayer_peer.close()
+		multiplayer.multiplayer_peer = null
+	peer = null
+	is_connecting = false
+	print("Сеть сброшена")
+
+func request_local_ip():
+	local_ip = get_local_ipv4() 
+	print("Локальный IP получен: ", local_ip)
+
+func _on_host_pressed():
+	reset_network()
+	back_host.visible = true
+	blue.visible = true
+	red.visible = true
+	port_label.visible = true
+	host.visible = false
+	connected.visible = false
+	exit.visible = false
+	
+	peer = ENetMultiplayerPeer.new()
+	server_port = find_available_port(49152, 65535)
+	var error = peer.create_server(server_port, max_players)
+	if error != OK:
+		print("Ошибка запуска сервера на порту ", server_port, ": ", error)
+		server_port = default_port
+		error = peer.create_server(server_port, max_players)
+		if error != OK:
+			print("Не удалось запустить сервер даже на порту ", server_port, ": ", error)
+			return
+	
+	multiplayer.multiplayer_peer = peer
+	multiplayer.peer_connected.connect(_on_peer_connected)
+	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
+	
+	Global.server_ip = local_ip  
+	Global.server_port = server_port  
+	port_label.text = "Твой код: " + local_ip + ":" + str(server_port)
+	print("Сервер запущен. Код для друзей: ", port_label.text)
+
+func start_game():
+	Global.selected_team = selected_team
+	Global.server_ip = local_ip  
+	Global.server_port = server_port  
+	port_input.visible = false
+	back_port.visible = false
+	connect_port.visible = false
+	blue.visible = false
+	red.visible = false
+	back_host.visible = false
+	host.visible = false
+	connected.visible = false
+	exit.visible = false
+	
+	if multiplayer.multiplayer_peer:
+		Global.saved_peer = multiplayer.multiplayer_peer
+		print("Сохранён мультиплеерный пир перед сменой сцены: ", Global.saved_peer)
+	
+	var tree = get_tree()
+	if tree:
+		tree.change_scene_to_file("res://Scenes/SceneOne.tscn")
+	else:
+		print("Ошибка: get_tree() вернул null в start_game для ", name)
+	
+func _on_peer_connected(id):
+	print("Новый клиент подключился! ID: ", id)
+
+func _on_peer_disconnected(id):
+	print("Клиент отключился! ID: ", id)
+
+func _on_connect_pressed():
+	reset_network()
+	port_input.visible = true
+	back_port.visible = true
+	connect_port.visible = true
+	exit.visible = false
+	host.visible = false
+	connected.visible = false
+
+func is_valid_ipv4(ip: String) -> bool:
+	var parts = ip.split(".")
+	if parts.size() != 4:
+		return false
+	for part in parts:
+		if not part.is_valid_int() or int(part) < 0 or int(part) > 255:
+			return false
+	return true
+
+func get_local_ipv4() -> String:
+	var addresses = IP.get_local_addresses()
+	var radmin_ip = ""
+	var local_ip = ""
+	for addr in addresses:
+		if addr.find(".") != -1 and addr.find(":") == -1 and addr != "127.0.0.1":
+			if addr.begins_with("26."):  
+				radmin_ip = addr
+				print("Найден IP Radmin VPN: ", radmin_ip)
+				return radmin_ip
+			elif addr.begins_with("192.168.") or addr.begins_with("10.") or addr.begins_with("172."):
+				local_ip = addr  
+	if radmin_ip != "":
+		return radmin_ip
+	if local_ip != "":
+		print("Найден локальный IP: ", local_ip)
+		return local_ip
+	print("Локальный IP не найден, используется 127.0.0.1")
+	return "127.0.0.1"
+	
+func _on_back_host_pressed() -> void:
+	multiplayer.multiplayer_peer = null
+	peer = null
+	back_host.visible = false
+	blue.visible = false
+	red.visible = false
+	port_label.visible = false
+	host.visible = true
+	connected.visible = true
+	exit.visible = true
+
+func _on_connect_port_pressed():
+	var code = port_input.text.strip_edges()
+	var parts = code.split(":")
+	
+	if parts.size() < 2:
+		print("Неверный код! Ожидается формат IP:порт")
+		return
+	
+	var ip = parts[0]
+	var port_str = parts[parts.size() - 1]
+	if not port_str.is_valid_int():
+		print("Порт должен быть числом!")
+		return
+	
+	var join_port = int(port_str)
+	
+	peer = ENetMultiplayerPeer.new()
+	var error = peer.create_client(ip, join_port)
+	if error != OK:
+		print("Ошибка создания клиента: ", error)
+		_on_connection_failed()
+		return
+	
+	if not multiplayer.connected_to_server.is_connected(_on_connected_to_server):
+		multiplayer.connected_to_server.connect(_on_connected_to_server)
+	if not multiplayer.connection_failed.is_connected(_on_connection_failed):
+		multiplayer.connection_failed.connect(_on_connection_failed)
+	
+	multiplayer.multiplayer_peer = peer
+	print("Подключаемся к ", ip, ":", join_port)
+	is_connecting = true
+
+func _on_connected_to_server():
+	print("Успешно подключено к серверу! ID: ", multiplayer.get_unique_id())
+	port_input.visible = false
+	back_port.visible = false
+	connect_port.visible = false
+	blue.visible = true
+	red.visible = true
+	back_host.visible = true
+
+func _on_connection_failed():
+	print("Не удалось подключиться к серверу!")
+	multiplayer.multiplayer_peer = null
+	peer = null
+	is_connecting = false
+	_on_back_port_pressed()
+
+func _on_back_port_pressed() -> void:
+	if is_connecting:
+		multiplayer.multiplayer_peer = null
+		peer = null
+		is_connecting = false
+	port_input.visible = false
+	back_port.visible = false
+	connect_port.visible = false
+	blue.visible = false
+	red.visible = false
+	back_host.visible = false
+	exit.visible = true
+	host.visible = true
+	connected.visible = true
+
+func _on_settings_pressed(): 
+	host.visible = false
+	connected.visible = false
+	exit.visible = false
+	blue.visible = false
+	red.visible = false
+	port_label.visible = false
+	port_input.visible = false
+
+func _on_back_pressed():
+	host.visible = true
+	connected.visible = true
+	exit.visible = true
+	port_label.visible = false
+	port_input.visible = false
+
+func _on_exit_pressed():
+	get_tree().quit()  
+
+func _on_blue_pressed():
+	selected_team = "Blue"
+	print("Выбрана команда: Синие")
+	Global.selected_team = selected_team 
+	if is_connecting:
+		get_node("/root/MultiplayerManager").rpc_id(1, "client_ready", multiplayer.get_unique_id(), selected_team)
+		get_node("/root/MultiplayerManager").rpc_id(1, "set_client_team", multiplayer.get_unique_id(), selected_team)
+	else:
+		start_game()
+
+func _on_red_pressed():
+	selected_team = "Red"
+	print("Выбрана команда: Красные")
+	Global.selected_team = selected_team  
+	if is_connecting:
+		get_node("/root/MultiplayerManager").rpc_id(1, "client_ready", multiplayer.get_unique_id(), selected_team)
+		get_node("/root/MultiplayerManager").rpc_id(1, "set_client_team", multiplayer.get_unique_id(), selected_team)
+	else:
+		start_game()
+
+
+func _on_start_game():
+	if is_inside_tree(): 
+		start_game()
+	else:
+		print("Ошибка: Menu не в дереве сцен при получении сигнала start_game")
+
+func find_available_port(start_port: int = 49152, end_port: int = 65535) -> int:
+	var temp_peer = ENetMultiplayerPeer.new()
+	for port in range(start_port, end_port + 1):
+		var error = temp_peer.create_server(port, max_players)
+		if error == OK:
+			temp_peer.close()
+			print("Найден свободный порт: ", port)
+			return port
+	temp_peer.close()
+	print("Не удалось найти свободный порт в диапазоне ", start_port, "-", end_port)
+	return default_port
+
+Код MultiplayerManager:
+extends Node
+
+signal start_game
+
+func _ready():
+	name = "MultiplayerManager"
+	print("MultiplayerManager загружен")
+
+@rpc("any_peer")
+func client_ready(client_id, team):
+	if multiplayer.is_server():
+		print("Клиент ", client_id, " готов, выбрана команда: ", team)
+		if team == "":
+			print("Ошибка: клиент ", client_id, " не выбрал команду, ждём set_client_team")
+			return
+		set_client_team.rpc(client_id, team)
+@rpc("any_peer")
+func set_client_team(client_id, team):
+	if multiplayer.is_server():
+		print("Получен set_client_team для клиента ", client_id, " с командой ", team)
+		var scene_one = get_node_or_null("/root/SceneOne")
+		if scene_one:
+			var player = scene_one.get_node_or_null(str(client_id))
+			if player:
+				player.team = team
+				player.position = scene_one.red_spawn_point if team == "Red" else scene_one.blue_spawn_point
+				player.update_team_color()
+				player.rpc("respawn_player", team, player.position, player.wins, player.losses)
+				print("Команда клиента ", client_id, " установлена: ", team)
+			else:
+				print("Игрок ", client_id, " ещё не создан, спавним с командой ", team)
+				scene_one.spawn_player_with_team(client_id, team)
+			await get_tree().create_timer(1.0).timeout 
+			rpc("start_game_for_all")
+		else:
+			print("Ошибка: SceneOne не найден на сервере, ждём загрузки сцены")
+			await get_tree().create_timer(0.5).timeout
+			set_client_team(client_id, team)  
+			
+@rpc("authority")
+func start_game_client():
+	print("Клиент получил команду начать игру")
+	var menu = get_node_or_null("/root/Menu")  
+	if menu and menu.is_inside_tree():
+		menu.emit_signal("start_game")
+	else:
+		print("Ошибка: Menu не найден или не в дереве для клиента ", multiplayer.get_unique_id())
+
+@rpc("any_peer", "call_local")
+func start_game_for_all():
+	print("Получена команда начать игру для ", "сервера" if multiplayer.is_server() else "клиента ", multiplayer.get_unique_id())
+	var current_scene = get_tree().current_scene
+	if current_scene and current_scene.name != "SceneOne":
+		var tree = get_tree()
+		if tree:
+			tree.change_scene_to_file("res://Scenes/SceneOne.tscn")
+		else:
+			print("Ошибка: get_tree() вернул null в start_game_for_all для ", name)
+	else:
+		print("Сцена уже SceneOne, пропускаем загрузку")
+
+@rpc("any_peer")
+func client_scene_ready(client_id):
+	if multiplayer.is_server():
+		print("Клиент ", client_id, " загрузил сцену")
+		await get_tree().create_timer(2.0).timeout
+		print("Начинаю синхронизацию для клиента ", client_id)
+		var scene_one = get_node_or_null("/root/SceneOne")
+		if scene_one:
+			scene_one.sync_players_to_client(client_id)
+		else:
+			print("Ошибка: SceneOne не найден на сервере при client_scene_ready для ", client_id)
+
+@rpc("authority", "call_local")
+func spawn_existing_player(id: int, pos: Vector3, team: String, wins: int, losses: int):
+	print("Получен spawn_existing_player для ID ", id, " на ", "сервере" if multiplayer.is_server() else "клиенте ", multiplayer.get_unique_id())
+	var scene_one = get_node_or_null("/root/SceneOne")
+	if scene_one and not scene_one.has_node(str(id)):
+		var player = scene_one.player_scene.instantiate()
+		player.name = str(id)
+		player.set_multiplayer_authority(id)
+		player.position = pos
+		player.team = team
+		player.wins = wins
+		player.losses = losses
+		player.initial_team_set = false  
+		scene_one.add_child(player)
+		player.update_team_color()
+		print("Существующий игрок ", id, " создан с позицией ", pos, " и командой ", team, " на клиенте ", multiplayer.get_unique_id())
+		if multiplayer.get_unique_id() != id:
+			var camera = player.head.get_node_or_null("Camera3D")
+			if camera:
+				camera.current = false
+			if player.aim_hud:
+				player.aim_hud.visible = false
+				print("HUD отключён для неуправляемого игрока ", id)
+	else:
+		print("Ошибка: SceneOne не найден или игрок ", id, " уже существует на клиенте ", multiplayer.get_unique_id())
+
+@rpc("any_peer")
+func apply_damage_to_player(target_id: int, damage: float, attacker_id: int):
+	if multiplayer.is_server():
+		print("Получен запрос на урон: цель ", target_id, ", урон ", damage, ", атакующий ", attacker_id)
+		var scene_one = get_node_or_null("/root/SceneOne")
+		if scene_one:
+			var target = scene_one.get_node_or_null(str(target_id))
+			if target and target.has_method("take_damage"):
+				target.take_damage(damage)
+			else:
+				print("Ошибка: цель ", target_id, " не найдена на сервере!")
+
+Код Scene_One:
+extends Node3D
+
+@export var player_scene: PackedScene = preload("res://Scenes/Player.tscn")
+var team_scores = {"Red": 0, "Blue": 0}
+var player_scores = {}
+var player_teams = {}
+var saved_peer = null
+var server_ip = "26.8.201.209"  
+var server_port = 49152  
+var is_initial_load = true
+@onready var overview_camera: Camera3D = $OverviewCamera
+
+var red_spawn_point = Vector3(0.6, 1, 10)  
+var blue_spawn_point = Vector3(5.0, 1, -48.0)    
+
+func _ready():
+	multiplayer.peer_connected.connect(_on_player_connected)
+	multiplayer.peer_disconnected.connect(_on_player_disconnected)
+	if is_initial_load:
+		if multiplayer.is_server():
+			saved_peer = multiplayer.multiplayer_peer
+			server_ip = Global.server_ip 
+			server_port = Global.server_port  
+			print("Сервер сохранил пир: ", saved_peer, " с портом ", server_port, " и IP ", server_ip)
+		if multiplayer.multiplayer_peer == null:
+			print("Ошибка: мультиплеерный пир не установлен в _ready")
+			return
+		if not has_node(str(multiplayer.get_unique_id())):
+			spawn_player(multiplayer.get_unique_id())
+		if not multiplayer.is_server():
+			get_node("/root/MultiplayerManager").rpc_id(1, "client_scene_ready", multiplayer.get_unique_id())
+		await get_tree().create_timer(2.0).timeout
+		is_initial_load = false
+		
+func _enter_tree():
+	if not is_initial_load:
+		if multiplayer.multiplayer_peer == null and Global.saved_peer:
+			multiplayer.multiplayer_peer = Global.saved_peer
+			server_ip = Global.server_ip  
+			server_port = Global.server_port  
+			print("Восстановлен мультиплеерный пир: ", multiplayer.multiplayer_peer, " с IP ", server_ip, " и портом ", server_port)
+		elif multiplayer.multiplayer_peer == null and not multiplayer.is_server():
+			var peer = ENetMultiplayerPeer.new()
+			var error = peer.create_client(server_ip, server_port)
+			if error == OK:
+				multiplayer.multiplayer_peer = peer
+				print("Клиент переподключён к ", server_ip, ":", server_port)
+			else:
+				print("Ошибка переподключения клиента: ", error)
+				
+
+func _input(event):
+	var tree = get_tree()
+	if event.is_action_pressed("Menu"): 
+		tree.change_scene_to_file("res://Scenes/Menu.tscn")
+
+func start_game():
+	if multiplayer.multiplayer_peer == null:
+		print("Ошибка: мультиплеерный пир не установлен, игра не запускается")
+		return
+	print("Игра запущена для ", "сервера" if multiplayer.is_server() else "клиента ", multiplayer.get_unique_id())
+	print("Перед сменой сцены: multiplayer_peer = ", multiplayer.multiplayer_peer)
+	Global.saved_peer = multiplayer.multiplayer_peer
+	if not has_node(str(multiplayer.get_unique_id())):
+		spawn_player(multiplayer.get_unique_id())
+		
+func _on_player_connected(id):
+	if multiplayer.is_server():
+		print("Игрок ", id, " подключился, ждём выбора команды")
+	else:
+		print("Клиент видит подключение игрока ", id)
+
+func _on_player_disconnected(id):
+	if has_node(str(id)):
+		get_node(str(id)).queue_free()
+
+func spawn_player(id):
+	if multiplayer.multiplayer_peer == null:
+		print("Ошибка: мультиплеерный пир не установлен, не могу создать игрока ", id)
+		return
+	if get_node_or_null(str(id)):
+		print("Игрок ", id, " уже существует, пропускаем создание")
+		return
+	if player_scene == null:
+		print("Ошибка: player_scene не инициализирована! Проверьте путь res://Scenes/Player.tscn или настройку в редакторе.")
+		return
+	var player = player_scene.instantiate()
+	player.name = str(id)
+	player.set_multiplayer_authority(id)
+	var team = Global.selected_team if id == multiplayer.get_unique_id() and Global.selected_team != "" else "Red"
+	player_teams[id] = team
+	player.team = team
+	player.position = red_spawn_point if player.team == "Red" else blue_spawn_point
+	var saved_wins = player_scores.get(id, {}).get("wins", 0)
+	var saved_losses = player_scores.get(id, {}).get("losses", 0)
+	player.wins = saved_wins
+	player.losses = saved_losses
+	player.update_team_color()
+	add_child(player)
+	print("Игрок ", id, " создан с командой ", player.team, " и счётом W/L=", saved_wins, "/", saved_losses, " на позиции ", player.position)
+	player.rpc_id(id, "respawn_player", player.team, player.position, saved_wins, saved_losses)
+	await get_tree().create_timer(0.1).timeout
+	player.scene_ready = true
+	player.rpc("sync_player", player.global_position, Vector3.ZERO, player.quaternion, player.head.quaternion, "fps_c19", false, false, 100.0, player.team, saved_wins, saved_losses)
+	
+@rpc("authority", "call_local")
+func spawn_existing_player(id, pos, team, wins, losses):
+	if get_node_or_null(str(id)):
+		print("Игрок ", id, " уже существует на клиенте, пропускаем")
+		return
+	var player = player_scene.instantiate()
+	player.name = str(id)
+	player.set_multiplayer_authority(id)
+	player.team = team
+	player.position = pos
+	player.wins = wins
+	player.losses = losses
+	player.initial_team_set = false 
+	add_child(player)
+	player.update_team_color()  
+	print("Существующий игрок ", id, " создан с позицией ", pos, " и командой ", team)
+	if id != multiplayer.get_unique_id():
+		var camera = player.head.get_node_or_null("Camera3D")
+		if camera:
+			camera.current = false
+		if player.aim_hud:
+			player.aim_hud.visible = false
+			print("HUD отключён для неуправляемого игрока ", id)
+			
+func spawn_player_with_team(id, team):
+	if multiplayer.multiplayer_peer == null:
+		print("Ошибка: мультиплеерный пир не установлен, не могу создать игрока ", id)
+		return
+	if get_node_or_null(str(id)):
+		print("Игрок ", id, " уже существует, пропускаем создание")
+		return
+	var player = player_scene.instantiate()
+	player.name = str(id)
+	player.set_multiplayer_authority(id)
+	player.team = team
+	player_teams[id] = team
+	player.position = red_spawn_point if team == "Red" else blue_spawn_point
+	var saved_wins = player_scores.get(str(id), {}).get("wins", 0)  
+	var saved_losses = player_scores.get(str(id), {}).get("losses", 0) 
+	player.wins = saved_wins
+	player.losses = saved_losses
+	player.initial_team_set = true
+	add_child(player)  
+	player.update_team_color()
+	print("Игрок ", id, " создан с командой ", player.team, " и счётом W/L=", saved_wins, "/", saved_losses, " на позиции ", player.position)
+	player.rpc_id(id, "respawn_player", player.team, player.position, saved_wins, saved_losses)
+	await get_tree().create_timer(0.1).timeout
+	player.rpc("sync_player", player.global_position, Vector3.ZERO, player.quaternion, player.head.quaternion, "fps_c19", false, false, 100.0, player.team, saved_wins, saved_losses)
+	
+func sync_players_to_client(client_id):
+	if multiplayer.is_server():
+		print("Синхронизирую игроков для клиента ", client_id)
+		var host_node = get_node_or_null("1")
+		if host_node and client_id != 1:
+			print("Отправляю данные о хосте (ID 1) клиенту ", client_id, ": pos=", host_node.global_position, ", team=", host_node.team, ", wins=", host_node.wins, ", losses=", host_node.losses)
+			get_node("/root/MultiplayerManager").rpc_id(client_id, "spawn_existing_player", 1, host_node.global_position, host_node.team, host_node.wins, host_node.losses)
+			host_node.scene_ready = true
+			host_node.rpc_id(client_id, "sync_player", host_node.global_position, host_node.velocity, host_node.quaternion, host_node.head.quaternion, host_node.current_weapon, host_node.is_sitting, host_node.is_dead, host_node.health, host_node.team, host_node.wins, host_node.losses)
+		for existing_id in multiplayer.get_peers():
+			if existing_id != client_id: 
+				var peer_node = get_node_or_null(str(existing_id))
+				if peer_node:
+					print("Отправляю данные о клиенте (ID ", existing_id, ") клиенту ", client_id, ": pos=", peer_node.global_position, ", team=", peer_node.team)
+					get_node("/root/MultiplayerManager").rpc_id(client_id, "spawn_existing_player", existing_id, peer_node.global_position, peer_node.team, peer_node.wins, peer_node.losses)
+					peer_node.scene_ready = true
+					peer_node.rpc_id(client_id, "sync_player", peer_node.global_position, peer_node.velocity, peer_node.quaternion, peer_node.head.quaternion, peer_node.current_weapon, peer_node.is_sitting, peer_node.is_dead, peer_node.health, peer_node.team, peer_node.wins, peer_node.losses)
+		await get_tree().create_timer(0.5).timeout
+		print("Синхронизация отправлена клиенту ", client_id)
+
+func end_match(red_lost: bool):
+	if multiplayer.is_server():
+		if red_lost:
+			team_scores["Blue"] += 1
+			print("Blue победили! Счёт: Red ", team_scores["Red"], " - Blue ", team_scores["Blue"])
+		else:
+			team_scores["Red"] += 1
+			print("Red победили! Счёт: Red ", team_scores["Red"], " - Blue ", team_scores["Blue"])
+		rpc("prepare_reset_match")
+
+func prepare_reset_match():
+	print("prepare_reset_match вызван для сервера" if multiplayer.is_server() else "клиента ", multiplayer.get_unique_id())
+	if multiplayer.is_server():
+		rpc("reset_match") 
+	else:
+		rpc_id(1, "reset_match")  
+
+@rpc("any_peer", "call_local")
+func reset_match():
+	print("reset_match вызван для ", "сервера" if multiplayer.is_server() else "клиента ", multiplayer.get_unique_id())
+	if multiplayer.is_server():
+		for child in get_children():
+			if child is CharacterBody3D and child.is_inside_tree():
+				child.is_dead = true
+				child.rpc("sync_player", child.global_position, child.velocity, child.quaternion, child.head.quaternion, child.current_weapon, child.is_sitting, child.is_dead, child.health, child.team, child.wins, child.losses)
+				child.rpc("remove_player")
+				child.queue_free()
+	else:
+		for child in get_children():
+			if child is CharacterBody3D and child.is_inside_tree():
+				child.rpc("remove_player")
+	
+	await get_tree().create_timer(2.0).timeout
+	
+	if multiplayer.is_server():
+		var all_ids = Array(multiplayer.get_peers())
+		all_ids.append(1)
+		print("player_scores перед возрождением: ", player_scores)
+		for id in all_ids:
+			var team = player_teams.get(id, "Red")  
+			var saved_wins = player_scores.get(str(id), {}).get("wins", 0)
+			var saved_losses = player_scores.get(str(id), {}).get("losses", 0)
+			spawn_player_with_team(id, team)
+			var player = get_node_or_null(str(id))
+			if player:
+				player.scene_ready = true
+				player.is_dead = false
+				player.health = 100.0
+				player.velocity = Vector3.ZERO
+				player.team = team
+				player.wins = saved_wins 
+				player.losses = saved_losses  
+				player.initial_team_set = false  
+				player.update_team_color()
+				player.rpc("respawn_player", team, player.position, saved_wins, saved_losses)
+				print("Возрождён игрок ", id, " с счётом W/L=", saved_wins, "/", saved_losses)
+		await get_tree().create_timer(0.5).timeout
+		sync_players_to_all_confirmed()
+		
+		
+func sync_players_to_all_confirmed():
+	if multiplayer.is_server():
+		var all_ids = Array(multiplayer.get_peers()) + [1]
+		for id in all_ids:
+			var player = get_node_or_null(str(id))
+			if player and player.scene_ready:
+				player.rpc("sync_player", player.global_position, player.velocity, player.quaternion, player.head.quaternion, player.current_weapon, player.is_sitting, player.is_dead, player.health, player.team, player.wins, player.losses)
+				print("Синхронизирован игрок ", id, " с позицией ", player.global_position, " и командой ", player.team)
+		await get_tree().create_timer(0.5).timeout
+		for id in all_ids:
+			var player = get_node_or_null(str(id))
+			if player and player.is_inside_tree():
+				player.rpc_id(id, "confirm_sync")
+		print("Полная синхронизация всех игроков выполнена с подтверждением")
+		
+@rpc("any_peer", "call_local")
+func confirm_sync():
+	print("Игрок ", multiplayer.get_unique_id(), " подтвердил синхронизацию")
+	var player = get_node_or_null(str(multiplayer.get_unique_id()))
+	if player and not player.is_dead:
+		player.set_physics_process(true)
+
+func sync_players_to_all():
+	if multiplayer.is_server():
+		var peers = multiplayer.get_peers() 
+		var all_ids = []  
+		all_ids.append(1)  
+		all_ids.append_array(peers)  
+		for id in all_ids:  
+			var player = get_node_or_null(str(id))
+			if player and player.scene_ready:
+				player.rpc("sync_player", player.global_position, player.velocity, player.quaternion, player.head.quaternion, player.current_weapon, player.is_sitting, player.is_dead, player.health, player.team, player.wins, player.losses)
+		print("Полная синхронизация всех игроков выполнена")
+		
+func check_team_status():
+	var red_alive = 0
+	var blue_alive = 0
+	for child in get_children():
+		if child is CharacterBody3D and child.is_inside_tree():
+			if not child.is_dead:
+				if child.team == "Red":
+					red_alive += 1
+				elif child.team == "Blue":
+					blue_alive += 1
+	print("Живых Red: ", red_alive, ", Живых Blue: ", blue_alive)
+	
+	if red_alive == 0 or blue_alive == 0:
+		print("Конец матча: Red живых: ", red_alive, ", Blue живых: ", blue_alive)
+		var winning_team = "Red" if red_alive > 0 else "Blue"
+		team_scores[winning_team] += 1
+		print(winning_team, " победили! Счёт: Red ", team_scores["Red"], " - Blue ", team_scores["Blue"])
+		
+		for child in get_children():
+			if child is CharacterBody3D and child.is_inside_tree():
+				var current_wins = player_scores.get(child.name, {}).get("wins", 0)
+				var current_losses = player_scores.get(child.name, {}).get("losses", 0)
+				if child.team == winning_team and not child.is_dead:
+					current_wins += 1
+					print("Игрок ", child.name, " победил, новый счёт W/L=", current_wins, "/", current_losses)
+				elif child.is_dead or child.team != winning_team:
+					current_losses += 1
+					print("Игрок ", child.name, " проиграл, новый счёт W/L=", current_wins, "/", current_losses)
+				child.wins = current_wins
+				child.losses = current_losses
+				player_scores[child.name] = {"wins": current_wins, "losses": current_losses}
+				child.rpc("sync_scores", current_wins, current_losses)
+				if child.is_dead:
+					print("Проверяем смерть игрока ", child.name, " с is_dead=", child.is_dead)
+					child.rpc("remove_player")
+		
+		print("player_scores после обновления: ", player_scores)
+		rpc("sync_team_scores", team_scores["Red"], team_scores["Blue"])
+		prepare_reset_match()
+	else:
+		print("Матч продолжается: Red живых: ", red_alive, ", Blue живых: ", blue_alive)
+
+@rpc("any_peer", "call_local")
+func sync_team_scores(red_score: int, blue_score: int):
+	team_scores["Red"] = red_score
+	team_scores["Blue"] = blue_score
+	print("Счёт команд синхронизирован: Red ", team_scores["Red"], " - Blue ", team_scores["Blue"])

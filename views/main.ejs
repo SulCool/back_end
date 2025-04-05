@@ -17,7 +17,7 @@
 <body>
     <div class="container">
         <header>
-            <% if (currentUser && currentUser.Role === 'Admin') { %>
+            <% if (currentUser && currentUser.Role==='Admin' ) { %>
                 <a href="/add" class="add-btn text-font">Добавить</a>
             <% } %>
             <div class="profile-icon">
@@ -39,7 +39,7 @@
                     <span class="label text-font">Добавить</span>
                 </button>
                 <div id="add_dialog" class="dialog">
-                    <form action="/add_task" method="post">
+                    <form action="/add_task" method="post" enctype="multipart/form-data">
                         <div class="dialog-content">
                             <span class="close-btn" id="close_add_dialog">×</span>
                             <p class="text-font text-black">Добавить задачу</p>
@@ -52,16 +52,20 @@
                                 value="<%= (new Date()).toISOString().slice(0, 16) %>"
                                 min="<%= (new Date()).toISOString().slice(0, 16) %>" />
                             <select name="executor" class="selector2 text-black text-font">
-                                <% if (users.length > 0) { %>
-                                    <% for (let i of users.filter(user => user.Login !== currentUser.Login)) { %>
+                                <% if (users.length> 0) { %>
+                                    <% for (let i of users.filter(user=> user.Login !== currentUser.Login)) { %>
                                         <option class="text-font text-black">
-                                            <%= i.Surname %> <%= i.Name %> <%= i.Patronymic %>
+                                            <%= i.Surname %>
+                                                <%= i.Name %>
+                                                    <%= i.Patronymic %>
                                         </option>
                                     <% } %>
                                 <% } else { %>
                                     <option>Нет доступных пользователей</option>
                                 <% } %>
                             </select>
+                            <label for="file" class="text-font text-black">Прикрепить файл:</label>
+                            <input type="file" id="file" name="file" class="text-input">
                             <button class="btn" type="submit">
                                 <span class="transition"></span>
                                 <span class="gradient"></span>
@@ -70,126 +74,141 @@
                         </div>
                     </form>
                 </div>
-            </div>
-            <div class="main_body">
-                <div class="filter-container">
-                    <form action="/" method="GET">
-                        <select class="dropbtn selector text-black text-font" id="userSelector" name="user"
-                            onchange="this.form.submit()">
-                            <option class="text-font selector1 text-white" value="all">Все</option>
-                            <% for (let i of users.filter(user => user.Login !== currentUser.Login)) { %>
-                                <option class="text-font selector1 text-white" value="<%= i.Login %>"
-                                    <%= i.Login === selectedUser ? 'selected' : '' %>>
-                                    <%= i.Surname %> <%= i.Name %> <%= i.Patronymic %>
-                                </option>
-                            <% } %>
-                        </select>
-                    </form>
-                    <div class="dropdown">
-                        <img src="/icons/sort.png" class="dropbtn">
-                        <div class="dropdown-content">
-                            <div class="text-font sort-buttons">
-                                <a href="/?sort=asc" class="sort-buttons" <% if (sortOrder === 'asc') { %>selected<% } %>>От А до Я</a>
-                                <a href="/?sort=desc" class="sort-buttons" <% if (sortOrder === 'desc') { %>selected<% } %>>От Я до А</a>
+                <div class="main_body">
+                    <div class="filter-container">
+                        <form action="/" method="GET">
+                            <select class="dropbtn selector text-black text-font" id="userSelector" name="user"
+                                onchange="this.form.submit()">
+                                <option class="text-font selector1 text-white" value="all">Все</option>
+                                <% for (let i of users.filter(user=> user.Login !== currentUser.Login)) { %>
+                                    <option class="text-font selector1 text-white" value="<%= i.Login %>"
+                                        <%=i.Login===selectedUser ? 'selected' : '' %>>
+                                        <%= i.Surname %>
+                                            <%= i.Name %>
+                                                <%= i.Patronymic %>
+                                    </option>
+                                <% } %>
+                            </select>
+                        </form>
+                        <div class="dropdown">
+                            <img src="/icons/sort.png" class="dropbtn">
+                            <div class="dropdown-content">
+                                <div class="text-font sort-buttons">
+                                    <a href="/?sort=asc" class="sort-buttons" <% if (sortOrder==='asc' ) { %>selected<% } %>>От А до Я</a>
+                                    <a href="/?sort=desc" class="sort-buttons" <% if (sortOrder==='desc' ) { %>selected<% } %>>От Я до А</a>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="text-font creator">Ваши задачи:</div>
-                <% if (tasksinworks && tasksinworks.length > 0) { %>
-                    <div class="buttons-container button">
-                        <% for (let i of tasksinworks) { %>
-                            <div class="card <%= new Date(i.Date_end) < new Date() && !i.Date_ended ? 'overdue' : '' %>">
-                                <div class="info">
-                                    <p class="title text-font"><%= i.Title %></p>
-                                    <p class="text-font"><%= i.Desc %></p>
-                                </div>
-                                <div class="footer">
-                                    <p class="text-font">Дата начала: <%= (new Date(i.Date_start)).toLocaleDateString() %></p>
-                                </div>
-                                <div class="footer">
-                                    <p class="text-font">Срок: <%= (new Date(i.Date_end)).toLocaleDateString() %></p>
-                                </div>
-                                <div class="footer">
-                                    <p class="text-font">Исполнитель: <%= i.Creator_name %></p>
-                                </div>
-                                <div class="footer">
-                                    <div class="text-font">
-                                        Статус:
-                                        <% if (i.Date_ended) { %>
-                                            Ожидание ответа
-                                        <% } else if (new Date(i.Date_end) < new Date()) { %>
-                                            Просрочено
-                                        <% } else { %>
-                                            В процессе
+                    <% const getFileName = (filePath) => filePath.split('/').pop(); %>
+                    <div class="text-font creator">Ваши задачи:</div>
+                    <% if (tasksinworks && tasksinworks.length> 0) { %>
+                        <div class="buttons-container button">
+                            <% for (let i of tasksinworks) { %>
+                                <div class="card <%= new Date(i.Date_end) < new Date() && !i.Date_ended ? 'overdue' : '' %>">
+                                    <div class="info">
+                                        <p class="title text-font"><%= i.Title %></p>
+                                        <p class="text-font"><%= i.Desc %></p>
+                                        <!-- Отображаем файл, если он есть -->
+                                        <% if (i.File_path) { %>
+                                            <p class="text-font">
+                                                <a href="/download/<%= getFileName(i.File_path) %>" class="text-font">Скачать прикреплённый файл</a>
+                                            </p>
+                                        <% } %>
+                                    </div>
+                                    <div class="footer">
+                                        <p class="text-font">Дата начала: <%= (new Date(i.Date_start)).toLocaleDateString() %></p>
+                                    </div>
+                                    <div class="footer">
+                                        <p class="text-font">Срок: <%= (new Date(i.Date_end)).toLocaleDateString() %></p>
+                                    </div>
+                                    <div class="footer">
+                                        <p class="text-font">Исполнитель: <%= i.Creator_name %></p>
+                                    </div>
+                                    <div class="footer">
+                                        <div class="text-font">
+                                            Статус:
+                                            <% if (i.Date_ended) { %>
+                                                Ожидание ответа
+                                            <% } else if (new Date(i.Date_end) < new Date()) { %>
+                                                Просрочено
+                                            <% } else { %>
+                                                В процессе
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                    <div class="footer">
+                                        <% if (!i.Date_ended) { %>
+                                            <form action="/complete_task" method="POST">
+                                                <input type="hidden" name="taskId" value="<%= i.id %>">
+                                                <button class="btn">
+                                                    <span class="transition"></span>
+                                                    <span class="gradient"></span>
+                                                    <span class="label text-font">Завершить</span>
+                                                </button>
+                                            </form>
                                         <% } %>
                                     </div>
                                 </div>
-                                <div class="footer">
-                                    <% if (!i.Date_ended) { %>
-                                        <form action="/complete_task" method="POST">
+                            <% } %>
+                        </div>
+                    <% } else { %>
+                        <div class="text-font">У вас нет задач</div>
+                    <% } %>
+
+                    <div class="text-font creator">Созданные вами:</div>
+                    <% if (taskcreators && taskcreators.length> 0) { %>
+                        <div class="buttons-container button">
+                            <% for (let i of taskcreators) { %>
+                                <div class="card <%= new Date(i.Date_end) < new Date() && !i.Date_ended ? 'overdue' : '' %>">
+                                    <div class="info">
+                                        <p class="title text-font"><%= i.Title %></p>
+                                        <p class="text-font"><%= i.Desc %></p>
+                                        <!-- Отображаем файл, если он есть -->
+                                        <% if (i.File_path) { %>
+                                            <p class="text-font">
+                                                <a href="/download/<%= getFileName(i.File_path) %>" class="text-font">Скачать прикреплённый файл</a>
+                                            </p>
+                                        <% } %>
+                                    </div>
+                                    <div class="footer">
+                                        <p class="text-font">Дата начала: <%= (new Date(i.Date_start)).toLocaleDateString() %></p>
+                                    </div>
+                                    <div class="footer">
+                                        <p class="text-font">Срок: <%= (new Date(i.Date_end)).toLocaleDateString() %></p>
+                                    </div>
+                                    <div class="footer">
+                                        <div class="text-font">
+                                            Статус:
+                                            <% if (i.Date_ended) { %>
+                                                Завершено (<%= new Date(i.Date_ended).toLocaleDateString() %>)
+                                            <% } else if (new Date(i.Date_end) < new Date()) { %>
+                                                Просрочено
+                                            <% } else { %>
+                                                В процессе
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                    <div class="footer">
+                                        <p class="text-font">Исполнитель: <%= i.Executer %></p>
+                                    </div>
+                                    <div class="footer">
+                                        <form action="/delete_task" method="POST">
                                             <input type="hidden" name="taskId" value="<%= i.id %>">
                                             <button class="btn">
                                                 <span class="transition"></span>
                                                 <span class="gradient"></span>
-                                                <span class="label text-font">Завершить</span>
+                                                <span class="label text-font">Удалить</span>
                                             </button>
                                         </form>
-                                    <% } %>
-                                </div>
-                            </div>
-                        <% } %>
-                    </div>
-                <% } else { %>
-                    <div class="text-font">У вас нет задач</div>
-                <% } %>
-
-                <div class="text-font creator">Созданные вами:</div>
-                <% if (taskcreators && taskcreators.length > 0) { %>
-                    <div class="buttons-container button">
-                        <% for (let i of taskcreators) { %>
-                            <div class="card <%= new Date(i.Date_end) < new Date() && !i.Date_ended ? 'overdue' : '' %>">
-                                <div class="info">
-                                    <p class="title text-font"><%= i.Title %></p>
-                                    <p class="text-font"><%= i.Desc %></p>
-                                </div>
-                                <div class="footer">
-                                    <p class="text-font">Дата начала: <%= (new Date(i.Date_start)).toLocaleDateString() %></p>
-                                </div>
-                                <div class="footer">
-                                    <p class="text-font">Срок: <%= (new Date(i.Date_end)).toLocaleDateString() %></p>
-                                </div>
-                                <div class="footer">
-                                    <div class="text-font">
-                                        Статус:
-                                        <% if (i.Date_ended) { %>
-                                            Завершено (<%= new Date(i.Date_ended).toLocaleDateString() %>)
-                                        <% } else if (new Date(i.Date_end) < new Date()) { %>
-                                            Просрочено
-                                        <% } else { %>
-                                            В процессе
-                                        <% } %>
                                     </div>
                                 </div>
-                                <div class="footer">
-                                    <p class="text-font">Исполнитель: <%= i.Executer %></p>
-                                </div>
-                                <div class="footer">
-                                    <form action="/delete_task" method="POST">
-                                        <input type="hidden" name="taskId" value="<%= i.id %>">
-                                        <button class="btn">
-                                            <span class="transition"></span>
-                                            <span class="gradient"></span>
-                                            <span class="label text-font">Удалить</span>
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        <% } %>
-                    </div>
-                <% } else { %>
-                    <div class="text-font">Вы не создали задач</div>
-                <% } %>
+                            <% } %>
+                        </div>
+                    <% } else { %>
+                        <div class="text-font">Вы не создали задач</div>
+                    <% } %>
+                </div>
             </div>
         </main>
     </div>

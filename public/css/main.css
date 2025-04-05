@@ -82,3 +82,14 @@ label {
     color: #ff6666; 
     border: 1px solid #ff6666; 
 }
+
+.card a {
+    color: #d87236; 
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.card a:hover {
+    color: #ff9f66;
+    text-decoration: underline;
+}

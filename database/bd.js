@@ -78,3 +78,14 @@ export function complete_task(query, params, callback) {
         callback(err);
     });
 }
+
+export function get_all_tasks(callback) {
+    const query = 'SELECT * FROM tasks';
+    db.all(query, [], (err, rows) => {
+        if (err) {
+            console.error("Ошибка при получении всех задач:", err.message);
+            return callback(err, null);
+        }
+        callback(null, rows);
+    });
+}

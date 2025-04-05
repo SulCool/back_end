@@ -102,3 +102,28 @@
 .form-container .link:hover {
     text-decoration: underline;
 }
+
+.form-container .back-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: inherit;
+    color: #fff;
+    background-color: #212121;
+    border: none;
+    width: 100%;
+    padding: 12px 16px;
+    font-size: inherit;
+    gap: 8px;
+    cursor: pointer;
+    border-radius: 6px;
+    box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.084), 0px 2px 3px rgba(0, 0, 0, 0.168);
+}
+
+.form-container .back-btn:hover {
+    background-color: #313131;
+}
+
+.form-container .back-btn:active {
+    scale: 0.95;
+}

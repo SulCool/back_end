@@ -1,4 +1,4 @@
-import { get_users } from "../database/bd.js";
+import { getUserByLogin } from "../database/bd.js";
 
 export const authMiddleware = (req, res, next) => {
     if (req.path.startsWith("/download")) {
@@ -8,11 +8,10 @@ export const authMiddleware = (req, res, next) => {
     const userLogin = req.cookies?.login;
     if (!userLogin) {
         res.locals.isAuthorized = false;
-        return res.redirect("/log_sign"); 
+        return res.redirect("/log_sign");
     }
 
-    const query = "SELECT * FROM users WHERE Login = ?";
-    get_users(query, [userLogin], (err, rows) => {
+    getUserByLogin(userLogin, (err, rows) => {
         if (err || rows.length === 0) {
             res.locals.isAuthorized = false;
             res.clearCookie("login");

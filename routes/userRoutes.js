@@ -1,6 +1,6 @@
 import express from "express";
-import { add_user, update_user, delete_user, get_users, get_tasks_creator, get_tasks_executer } from "../database/bd.js";
-import { fileURLToPath } from "url"; 
+import { getUsers, getUserByLogin, addUser, updateUser, deleteUser, getTasksByCreator, getTasksByExecutor } from "../database/bd.js";
+import { fileURLToPath } from "url";
 import path from "path";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -22,8 +22,7 @@ router.get("/", (req, res) => {
     }
     const sortOrder = req.query.sort || "asc";
     const selectedUser = req.query.user || "all";
-    const usersQuery = "SELECT Surname, Name, Patronymic, Login FROM users";
-    get_users(usersQuery, [], (err, users) => {
+    getUsers((err, users) => {
         if (err) {
             console.error("Ошибка при загрузке пользователей:", err.message);
             return res.status(500).send("Ошибка сервера");
@@ -33,12 +32,12 @@ router.get("/", (req, res) => {
         if (currentUser.Surname && currentUser.Name && currentUser.Patronymic) {
             executer = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
         }
-        get_tasks_creator(currentUser.Login, (err, taskcreators) => {
+        getTasksByCreator(currentUser.Login, (err, taskcreators) => {
             if (err) {
                 console.error("Ошибка при получении задач создателя:", err.message);
                 return res.status(500).send("Ошибка сервера");
             }
-            get_tasks_executer(executer, (err, tasksinworks) => {
+            getTasksByExecutor(executer, (err, tasksinworks) => {
                 if (err) {
                     console.error("Ошибка при получении задач исполнителя:", err.message);
                     return res.status(500).send("Ошибка сервера");
@@ -76,8 +75,7 @@ router.post("/add", urlencodedParser, function (req, res) {
     if (!login || !surname || !name || !patronymic || !post) {
         return res.render("add", { error: "Все поля должны быть заполнены" });
     }
-    const query = "SELECT * FROM users WHERE login = ?";
-    get_users(query, [login], (err, row) => {
+    getUserByLogin(login, (err, row) => {
         if (err) {
             console.error("Ошибка при выполнении запроса:", err.message);
             return res.render("add", { error: "Ошибка сервера" });
@@ -86,15 +84,19 @@ router.post("/add", urlencodedParser, function (req, res) {
             return res.render("add", { error: "Логин уже занят" });
         }
         const userRole = role === "on" ? "Admin" : "User";
-        add_user(name, surname, patronymic, login, userRole, post);
-        res.redirect(`/`);
+        addUser(name, surname, patronymic, login, userRole, post, (err) => {
+            if (err) {
+                console.error("Ошибка при добавлении пользователя:", err.message);
+                return res.render("add", { error: "Ошибка сервера" });
+            }
+            res.redirect(`/`);
+        });
     });
 });
 
 router.get("/edits", (req, res) => {
     const login = req.cookies.login;
-    const query = "SELECT * FROM users WHERE Login = ?";
-    get_users(query, [login], (err, rows) => {
+    getUserByLogin(login, (err, rows) => {
         if (err) {
             console.error("Ошибка при получении данных пользователя:", err.message);
             return res.status(500).send("Ошибка сервера");
@@ -117,8 +119,7 @@ router.post("/edits", urlencodedParser, (req, res) => {
         });
     }
     const userRole = role === "on" ? "Admin" : "User";
-    const query = "SELECT * FROM users WHERE login = ?";
-    get_users(query, [login], (err, row) => {
+    getUserByLogin(login, (err, row) => {
         if (err) {
             console.error("Ошибка при выполнении запроса:", err.message);
             return res.render("edits", {
@@ -132,7 +133,7 @@ router.post("/edits", urlencodedParser, (req, res) => {
                 user: req.body
             });
         }
-        update_user(old_login, login, surname, name, patronymic, post, userRole, (err, changes) => {
+        updateUser(old_login, login, surname, name, patronymic, post, userRole, (err, changes) => {
             if (err) {
                 console.error("Ошибка при обновлении пользователя:", err.message);
                 return res.render("edits", {
@@ -160,8 +161,7 @@ router.post("/log_sign", urlencodedParser, (req, res) => {
         return res.render("log_sign", { error: "Введите логин" });
     }
     res.clearCookie("login");
-    const query = "SELECT * FROM users WHERE login = ?";
-    get_users(query, [req.body.login], (err, rows) => {
+    getUserByLogin(req.body.login, (err, rows) => {
         if (err || rows.length === 0) {
             return res.render("log_sign", { error: "Неправильный логин" });
         }
@@ -184,8 +184,7 @@ router.post("/del", urlencodedParser, (req, res) => {
     if (!login) {
         return res.render("del", { error: "Логин не указан" });
     }
-    const query = "SELECT * FROM users WHERE Login = ?";
-    get_users(query, [login], (err, rows) => {
+    getUserByLogin(login, (err, rows) => {
         if (err) {
             console.error("Ошибка при получении пользователя:", err.message);
             return res.render("del", { error: "Ошибка сервера" });
@@ -195,7 +194,7 @@ router.post("/del", urlencodedParser, (req, res) => {
         }
         const userId = rows[0].id;
         const userLogin = rows[0].Login;
-        delete_user(userId, (err) => {
+        deleteUser(userId, (err) => {
             if (err) {
                 console.error("Ошибка при удалении пользователя:", err.message);
                 return res.render("del", { error: "Не удалось удалить пользователя" });

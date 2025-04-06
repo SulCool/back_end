@@ -1,20 +1,15 @@
 import express from "express";
-import { add_task, delete_task, complete_task } from "../database/bd.js";
+import { addTask, getTaskFilePath, getTaskById, deleteTask, completeTask } from "../database/bd.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import sqlite3 from "sqlite3";
-import { fileURLToPath } from "url"; 
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export const urlencodedParser = express.urlencoded({ extended: false });
 const router = express.Router();
-
-const db = new sqlite3.Database("./main.db", sqlite3.OPEN_READWRITE, (err) => {
-    if (err) return console.error(err.message);
-});
 
 const uploadDir = "public/uploads/";
 if (!fs.existsSync(uploadDir)) {
@@ -23,11 +18,11 @@ if (!fs.existsSync(uploadDir)) {
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, "public/uploads/"); 
+        cb(null, "public/uploads/");
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-        cb(null, uniqueSuffix + path.extname(file.originalname)); 
+        cb(null, uniqueSuffix + path.extname(file.originalname));
     },
 });
 const upload = multer({ storage });
@@ -46,13 +41,9 @@ router.post("/add_task", (req, res) => {
         if (executor === currentUser.Login) {
             return res.status(400).send("Вы не можете назначить задачу самому себе");
         }
-        const filePath = req.file ? `/uploads/${req.file.filename}` : null; 
-        const addTaskQuery = `
-            INSERT INTO tasks (Title, Desc, Date_start, Date_end, Creator, Executer, Creator_name, File_path)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `;
+        const filePath = req.file ? `/uploads/${req.file.filename}` : null;
         const userName = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
-        add_task(addTaskQuery, [title, description, startTime, endTime, currentUser.Login, executor, userName, filePath], (err) => {
+        addTask(title, description, startTime, endTime, currentUser.Login, executor, userName, filePath, (err) => {
             if (err) {
                 console.error("Ошибка при добавлении задачи:", err.message);
                 return res.status(500).send("Ошибка сервера");
@@ -65,10 +56,8 @@ router.post("/add_task", (req, res) => {
 router.get("/download/:filename", (req, res) => {
     console.log(`[DEBUG] Вызван маршрут /download/:filename с filename: ${req.params.filename}`);
     const filename = req.params.filename;
-    
-    const query = "SELECT File_path FROM tasks WHERE File_path LIKE ? LIMIT 1";
-    console.log(`[DEBUG] Выполняем запрос в базе данных для поиска файла: ${filename}`);
-    db.get(query, [`%/uploads/${filename}`], (err, row) => {
+
+    getTaskFilePath(filename, (err, row) => {
         if (err) {
             console.error("Ошибка при поиске файла в базе данных:", err.message);
             return res.status(500).send("Ошибка сервера");
@@ -105,14 +94,13 @@ router.post("/delete_task", urlencodedParser, (req, res) => {
     if (!taskId) {
         return res.status(400).send("ID задачи не указан");
     }
-    const getTaskQuery = "SELECT File_path FROM tasks WHERE id = ?";
-    db.get(getTaskQuery, [taskId], (err, row) => {
+    getTaskById(taskId, (err, row) => {
         if (err) {
             console.error("Ошибка при получении задачи:", err.message);
             return res.status(500).send("Ошибка сервера");
         }
         const filePath = row?.File_path;
-        delete_task(taskId, (err) => {
+        deleteTask(taskId, (err) => {
             if (err) {
                 console.error("Ошибка при удалении задачи:", err.message);
                 return res.status(500).send("Ошибка сервера");
@@ -130,10 +118,9 @@ router.post("/delete_task", urlencodedParser, (req, res) => {
 
 router.post("/complete_task", urlencodedParser, (req, res) => {
     const { taskId } = req.body;
-    const query = "UPDATE tasks SET Date_ended = ? WHERE id = ?";
     const dateEnded = new Date().toISOString();
 
-    complete_task(query, [dateEnded, taskId], (err) => {
+    completeTask(taskId, dateEnded, (err) => {
         if (err) {
             console.error("Ошибка при завершении задачи:", err.message);
             return res.status(500).send("Ошибка сервера");

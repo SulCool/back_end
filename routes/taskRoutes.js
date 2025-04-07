@@ -1,5 +1,5 @@
 import express from "express";
-import { addTask, getTaskFilePath, getTaskById, deleteTask, completeTask } from "../database/bd.js";
+import { addTask, getTaskFilePath, getTaskById, deleteTask, completeTask, updateTask } from "../database/bd.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -126,6 +126,38 @@ router.post("/complete_task", urlencodedParser, (req, res) => {
             return res.status(500).send("Ошибка сервера");
         }
         res.redirect("/");
+    });
+});
+
+router.post("/edit_task", (req, res) => {
+    upload.single("file")(req, res, (err) => {
+        if (err) {
+            console.error("Ошибка при загрузке файла:", err.message);
+            return res.status(500).send("Ошибка при загрузке файла");
+        }
+
+        const { taskId, title, description, "start-time": startTime, "end-time": endTime, executor } = req.body;
+        const currentUser = res.locals.user;
+
+        if (!taskId || !title || !description || !startTime || !endTime || !executor) {
+            return res.status(400).send("Все поля должны быть заполнены");
+        }
+
+        getTaskById(taskId, (err, row) => {
+            if (err || !row) {
+                return res.status(404).send("Задача не найдена");
+            }
+
+            const filePath = req.file ? `/uploads/${req.file.filename}` : row.File_path;
+
+            updateTask(taskId, title, description, startTime, endTime, executor, filePath, (err) => {
+                if (err) {
+                    console.error("Ошибка при обновлении задачи:", err.message);
+                    return res.status(500).send("Ошибка сервера");
+                }
+                res.redirect("/");
+            });
+        });
     });
 });
 

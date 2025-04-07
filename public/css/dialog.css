@@ -30,9 +30,12 @@
     border: 1px solid #ccc;
     border-radius: 5px;
     font-size: 16px;
-    resize: none; 
-    height: 100px; 
-    box-sizing: border-box; 
+    box-sizing: border-box;
+}
+
+textarea.text-input {
+    resize: none;
+    height: 100px;
 }
 
 .close-btn {
@@ -43,4 +46,14 @@
     font-weight: bold;
     color: #333;
     cursor: pointer;
+}
+
+.selector2 {
+    position: relative; 
+    border: none;
+    margin-bottom: 10px;
+    width: 100%;
+    padding: 10px;
+    font-family: "Montserrat", sans-serif;
+    font-size: 16px;
 }

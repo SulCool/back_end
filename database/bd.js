@@ -124,3 +124,22 @@ export function getAllTasks(callback) {
     const query = "SELECT * FROM tasks";
     querySelect(query, [], callback);
 }
+
+export function updateTask(taskId, title, description, startTime, endTime, executor, filePath, callback) {
+    const dateUpdated = new Date().toISOString();
+    const query = `
+        UPDATE tasks 
+        SET Title = ?, Desc = ?, Date_start = ?, Date_end = ?, Executer = ?, File_path = ?, Date_updated = ?
+        WHERE id = ?
+    `;
+    queryRun(query, [title, description, startTime, endTime, executor, filePath, dateUpdated, taskId], (err, changes) => {
+        if (err) {
+            console.error("Ошибка при обновлении задачи:", err.message);
+            callback(err, null);
+        } else if (changes === 0) {
+            callback(new Error("Задача с таким ID не найдена"), null);
+        } else {
+            callback(null, changes);
+        }
+    });
+}

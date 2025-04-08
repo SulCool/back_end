@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Логика модального окна профиля
     const profileIcon = document.querySelector('.profile-icon');
     const modal = document.querySelector('.modal');
     const closeBtn = document.querySelector('.close');
@@ -24,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Логика формы редактирования задач
     const editDialog = document.getElementById('edit_dialog');
     const closeEditDialog = document.getElementById('close_edit_dialog');
 

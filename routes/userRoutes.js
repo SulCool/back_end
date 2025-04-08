@@ -1,5 +1,5 @@
 import express from "express";
-import { getUsers, getUserByLogin, addUser, updateUser, deleteUser, getTasksByCreator, getTasksByExecutor } from "../database/bd.js";
+import { getUsers, getUserByLogin, addUser, updateUser, deleteUser, getTasksByCreator, getTasksByExecutor, getTaskStatsByCreator, getTaskStatsByExecutor } from "../database/bd.js";
 import { fileURLToPath } from "url";
 import path from "path";
 
@@ -63,7 +63,26 @@ router.get("/profile", (req, res) => {
     if (!currentUser) {
         return res.redirect("/log_sign");
     }
-    res.render("profile", { currentUser });
+
+    const executorName = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
+    getTaskStatsByCreator(currentUser.Login, (err, creatorStats) => {
+        if (err) {
+            console.error("Ошибка при загрузке статистики создателя:", err.message);
+            return res.status(500).send("Ошибка сервера");
+        }
+        getTaskStatsByExecutor(executorName, (err, executorStats) => {
+            if (err) {
+                console.error("Ошибка при загрузке статистики исполнителя:", err.message);
+                return res.status(500).send("Ошибка сервера");
+            }
+
+            res.render("profile", { 
+                currentUser, 
+                creatorStats, 
+                executorStats 
+            });
+        });
+    });
 });
 
 router.get("/add", (_, res) => {

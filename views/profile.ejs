@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Manager</title>
+    <title>Task Manager - Профиль</title>
     <link rel="stylesheet" href="/css/main.css">
     <script src="/js/modal.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,41 +16,49 @@
 <body>
     <div class="container">
         <header>
-            <% if (currentUser.Role==='Admin' ) { %>
-                <a href="/edits" class="add-btn text-font">
-                    Изменить
-                </a>
-                <% } %>
-                <% if (currentUser.Role==='Admin' ) { %>
-                    <a href="/del" class="add-btn text-font">
-                        Удалить
-                    </a>
-                    <% } %>
-                    <div class="profile-icon">
-                        <img src="/icons/icon.png" class="profile-img">
-                        <div class="modal">
-                            <div class="modal-content">
-                                <span class="close"></span>
-                                <a href="/" class="text-font text-black">Задачи</a>
-                                <a href="/log_sign" class="text-font text-black">Сменить Профиль</a>
-                            </div>
-                        </div>
+            <% if (currentUser.Role === 'Admin') { %>
+                <a href="/edits" class="add-btn text-font">Изменить</a>
+            <% } %>
+            <% if (currentUser.Role === 'Admin') { %>
+                <a href="/del" class="add-btn text-font">Удалить</a>
+            <% } %>
+            <div class="profile-icon">
+                <img src="/icons/icon.png" class="profile-img">
+                <div class="modal">
+                    <div class="modal-content">
+                        <span class="close"></span>
+                        <a href="/" class="text-font text-black">Задачи</a>
+                        <a href="/log_sign" class="text-font text-black">Сменить Профиль</a>
                     </div>
+                </div>
+            </div>
         </header>
         <main class="main">
             <div class="main_header">
                 <p class="text-font">Ваш профиль</p>
             </div>
-
             <div class="main_body">
-                <p class="text-font">ФИО: <%= currentUser.Surname %>
-                        <%= currentUser.Name %>
-                            <%= currentUser.Patronymic %>.</p>
+                <p class="text-font">ФИО: <%= currentUser.Surname %> <%= currentUser.Name %> <%= currentUser.Patronymic %>.</p>
                 <p class="text-font">Роль: <%= currentUser.Role %>.</p>
                 <p class="text-font">Должность: <%= currentUser.Post %>.</p>
+
+                <div class="stats-section">
+                    <h3 class="text-font">Статистика задач</h3>
+                    
+                    <h4 class="text-font">Как создатель:</h4>
+                    <p class="text-font">Создано за всё время: <%= creatorStats.totalCreated %></p>
+                    <p class="text-font">Завершено за всё время: <%= creatorStats.totalCompleted %></p>
+                    <p class="text-font">Создано за последний месяц: <%= creatorStats.monthCreated %></p>
+                    <p class="text-font">Завершено за последний месяц: <%= creatorStats.monthCompleted %></p>
+
+                    <h4 class="text-font">Как исполнитель:</h4>
+                    <p class="text-font">Назначено за всё время: <%= executorStats.totalAssigned %></p>
+                    <p class="text-font">Завершено за всё время: <%= executorStats.totalCompleted %></p>
+                    <p class="text-font">Назначено за последний месяц: <%= executorStats.monthAssigned %></p>
+                    <p class="text-font">Завершено за последний месяц: <%= executorStats.monthCompleted %></p>
+                </div>
             </div>
-    </div>
-    </main>
+        </main>
     </div>
 </body>
 

@@ -143,3 +143,59 @@ export function updateTask(taskId, title, description, startTime, endTime, execu
         }
     });
 }
+
+export function getTaskStatsByCreator(login, callback) {
+    const monthAgo = new Date();
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
+    const monthAgoISO = monthAgo.toISOString();
+
+    const query = `
+        SELECT 
+            (SELECT COUNT(*) FROM tasks WHERE Creator = ?) as totalCreated,
+            (SELECT COUNT(*) FROM tasks WHERE Creator = ? AND Date_ended IS NOT NULL) as totalCompleted,
+            (SELECT COUNT(*) FROM tasks WHERE Creator = ? AND Date_start >= ?) as monthCreated,
+            (SELECT COUNT(*) FROM tasks WHERE Creator = ? AND Date_ended >= ?) as monthCompleted
+    `;
+    querySelect(query, [login, login, login, monthAgoISO, login, monthAgoISO], (err, rows) => {
+        if (err) {
+            console.error("Ошибка при получении статистики задач:", err.message);
+            callback(err, null);
+        } else {
+            const stats = rows[0] || {
+                totalCreated: 0,
+                totalCompleted: 0,
+                monthCreated: 0,
+                monthCompleted: 0
+            };
+            callback(null, stats);
+        }
+    });
+}
+
+export function getTaskStatsByExecutor(executorName, callback) {
+    const monthAgo = new Date();
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
+    const monthAgoISO = monthAgo.toISOString();
+
+    const query = `
+        SELECT 
+            (SELECT COUNT(*) FROM tasks WHERE Executer = ?) as totalAssigned,
+            (SELECT COUNT(*) FROM tasks WHERE Executer = ? AND Date_ended IS NOT NULL) as totalCompleted,
+            (SELECT COUNT(*) FROM tasks WHERE Executer = ? AND Date_start >= ?) as monthAssigned,
+            (SELECT COUNT(*) FROM tasks WHERE Executer = ? AND Date_ended >= ?) as monthCompleted
+    `;
+    querySelect(query, [executorName, executorName, executorName, monthAgoISO, executorName, monthAgoISO], (err, rows) => {
+        if (err) {
+            console.error("Ошибка при получении статистики задач исполнителя:", err.message);
+            callback(err, null);
+        } else {
+            const stats = rows[0] || {
+                totalAssigned: 0,
+                totalCompleted: 0,
+                monthAssigned: 0,
+                monthCompleted: 0
+            };
+            callback(null, stats);
+        }
+    });
+}

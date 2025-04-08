@@ -111,3 +111,24 @@ label {
 .card.overdue[data-type="Обычная"] {
     border: 1px solid #ff6666; 
 }
+
+.stats-section {
+    margin-top: 20px;
+    padding: 10px;
+    border-top: 1px solid #d87236;
+}
+
+.stats-section h3 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+.stats-section h4 {
+    font-size: 1rem;
+    margin: 10px 0 5px;
+    color: #d87236;
+}
+
+.stats-section p {
+    margin: 5px 0;
+}

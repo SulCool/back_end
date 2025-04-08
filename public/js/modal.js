@@ -1,8 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Существующий код для профиля
+    // Логика модального окна профиля
     const profileIcon = document.querySelector('.profile-icon');
     const modal = document.querySelector('.modal');
     const closeBtn = document.querySelector('.close');
+
+    if (!profileIcon || !modal || !closeBtn) {
+        console.error('Profile icon, modal или close button не найдены!');
+        return;
+    }
 
     profileIcon.addEventListener('click', (event) => {
         event.stopPropagation();
@@ -19,31 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Существующий код для добавления задачи
-    const openAddDialog = document.getElementById('open_add_dialog');
-    const addDialog = document.getElementById('add_dialog');
-    const closeAddDialog = document.getElementById('close_add_dialog');
-
-    if (!addDialog || !closeAddDialog || !openAddDialog) {
-        console.error('Dialog modal, close button или open button не найдены!');
-        return;
-    }
-
-    openAddDialog.addEventListener('click', () => {
-        addDialog.style.display = 'block';
-    });
-
-    closeAddDialog.addEventListener('click', () => {
-        addDialog.style.display = 'none';
-    });
-
-    window.addEventListener('click', (event) => {
-        if (event.target === addDialog) {
-            addDialog.style.display = 'none';
-        }
-    });
-
-    // Код для редактирования задачи
+    // Логика формы редактирования задач
     const editDialog = document.getElementById('edit_dialog');
     const closeEditDialog = document.getElementById('close_edit_dialog');
 
@@ -67,14 +48,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const startTime = taskData.dataset.startTime;
             const endTime = taskData.dataset.endTime;
             const executor = taskData.dataset.executor;
+            const type = taskData.dataset.type;
 
-            // Заполняем форму
             document.getElementById('edit_taskId').value = taskId;
             document.getElementById('edit_title').value = title;
             document.getElementById('edit_description').value = description;
             document.getElementById('edit_start-time').value = startTime.slice(0, 16);
             document.getElementById('edit_end-time').value = endTime.slice(0, 16);
             document.getElementById('edit_executor').value = executor;
+            document.getElementById('edit_type').value = type;
 
             editDialog.style.display = 'block';
         });

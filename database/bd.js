@@ -64,12 +64,12 @@ export function updateUser(oldLogin, newLogin, surname, name, patronymic, post, 
     });
 }
 
-export function addTask(title, description, startTime, endTime, creator, executor, creatorName, filePath, callback) {
+export function addTask(title, description, startTime, endTime, creator, executor, creatorName, filePath, type, callback) {
     const query = `
-        INSERT INTO tasks (Title, Desc, Date_start, Date_end, Creator, Executer, Creator_name, File_path)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO tasks (Title, Desc, Date_start, Date_end, Creator, Executer, Creator_name, File_path, Type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    queryRun(query, [title, description, startTime, endTime, creator, executor, creatorName, filePath], (err, lastID) => {
+    queryRun(query, [title, description, startTime, endTime, creator, executor, creatorName, filePath, type], (err, lastID) => {
         if (err) {
             callback(err);
         } else {
@@ -125,14 +125,14 @@ export function getAllTasks(callback) {
     querySelect(query, [], callback);
 }
 
-export function updateTask(taskId, title, description, startTime, endTime, executor, filePath, callback) {
+export function updateTask(taskId, title, description, startTime, endTime, executor, filePath, type, callback) {
     const dateUpdated = new Date().toISOString();
     const query = `
         UPDATE tasks 
-        SET Title = ?, Desc = ?, Date_start = ?, Date_end = ?, Executer = ?, File_path = ?, Date_updated = ?
+        SET Title = ?, Desc = ?, Date_start = ?, Date_end = ?, Executer = ?, File_path = ?, Date_updated = ?, Type = ?
         WHERE id = ?
     `;
-    queryRun(query, [title, description, startTime, endTime, executor, filePath, dateUpdated, taskId], (err, changes) => {
+    queryRun(query, [title, description, startTime, endTime, executor, filePath, dateUpdated, type, taskId], (err, changes) => {
         if (err) {
             console.error("Ошибка при обновлении задачи:", err.message);
             callback(err, null);

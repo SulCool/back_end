@@ -33,9 +33,9 @@ router.post("/add_task", (req, res) => {
             console.error("Ошибка при загрузке файла:", err.message);
             return res.status(500).send("Ошибка при загрузке файла");
         }
-        const { title, description, "start-time": startTime, "end-time": endTime, executor } = req.body;
+        const { title, description, "start-time": startTime, "end-time": endTime, executor, type } = req.body;
         const currentUser = res.locals.user;
-        if (!title || !description || !startTime || !endTime || !executor) {
+        if (!title || !description || !startTime || !endTime || !executor || !type) {
             return res.status(400).send("Все поля должны быть заполнены");
         }
         if (executor === currentUser.Login) {
@@ -43,7 +43,7 @@ router.post("/add_task", (req, res) => {
         }
         const filePath = req.file ? `/uploads/${req.file.filename}` : null;
         const userName = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
-        addTask(title, description, startTime, endTime, currentUser.Login, executor, userName, filePath, (err) => {
+        addTask(title, description, startTime, endTime, currentUser.Login, executor, userName, filePath, type, (err) => {
             if (err) {
                 console.error("Ошибка при добавлении задачи:", err.message);
                 return res.status(500).send("Ошибка сервера");
@@ -136,10 +136,10 @@ router.post("/edit_task", (req, res) => {
             return res.status(500).send("Ошибка при загрузке файла");
         }
 
-        const { taskId, title, description, "start-time": startTime, "end-time": endTime, executor } = req.body;
+        const { taskId, title, description, "start-time": startTime, "end-time": endTime, executor, type } = req.body;
         const currentUser = res.locals.user;
 
-        if (!taskId || !title || !description || !startTime || !endTime || !executor) {
+        if (!taskId || !title || !description || !startTime || !endTime || !executor || !type) {
             return res.status(400).send("Все поля должны быть заполнены");
         }
 
@@ -150,7 +150,7 @@ router.post("/edit_task", (req, res) => {
 
             const filePath = req.file ? `/uploads/${req.file.filename}` : row.File_path;
 
-            updateTask(taskId, title, description, startTime, endTime, executor, filePath, (err) => {
+            updateTask(taskId, title, description, startTime, endTime, executor, filePath, type, (err) => {
                 if (err) {
                     console.error("Ошибка при обновлении задачи:", err.message);
                     return res.status(500).send("Ошибка сервера");

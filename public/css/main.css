@@ -93,3 +93,21 @@ label {
     color: #ff9f66;
     text-decoration: underline;
 }
+
+.card[data-type="Срочная"] {
+    border: 2px solid #ff6666; 
+}
+
+.card[data-type="Долгосрочная"] {
+    border: 2px solid #36a2d8; 
+}
+
+.card[data-type="Обычная"] {
+    border: 2px solid #66cc66; 
+}
+
+.card.overdue[data-type="Срочная"],
+.card.overdue[data-type="Долгосрочная"],
+.card.overdue[data-type="Обычная"] {
+    border: 1px solid #ff6666; 
+}

@@ -1,5 +1,5 @@
 import express from "express";
-import { getUsers, getUserByLogin, addUser, updateUser, deleteUser, getTasksByCreator, getTasksByExecutor, getTaskStatsByCreator, getTaskStatsByExecutor, getTaskExecutors } from "../database/bd.js";
+import { getUsers, getUserByLogin, addUser, updateUser, deleteUser, getTasksByCreator, getTasksByExecutor, getTaskStatsByCreator, getTaskStatsByExecutor, getTaskExecutors, getTaskFilePath } from "../database/bd.js";
 import { fileURLToPath } from "url";
 import path from "path";
 
@@ -12,6 +12,34 @@ const router = express.Router();
 router.get("*", (req, res, next) => {
     console.log(`[DEBUG userRoutes] GET-запрос на: ${req.path}`);
     next();
+});
+
+// Новый маршрут для скачивания файлов
+router.get("/download/:filename", (req, res) => {
+    const filename = req.params.filename;
+    console.log(`[DEBUG] Запрос на скачивание файла: ${filename}`);
+
+    getTaskFilePath(filename, (err, task) => {
+        if (err) {
+            console.error("Ошибка при поиске файла в базе данных:", err.message);
+            return res.status(500).send("Ошибка сервера");
+        }
+        if (!task || !task.File_path) {
+            console.log(`[DEBUG] Файл ${filename} не найден в базе данных`);
+            return res.status(404).send("Файл не найден");
+        }
+
+        const filePath = path.join(__dirname, "..", task.File_path);
+        console.log(`[DEBUG] Путь к файлу: ${filePath}`);
+
+        // Проверяем, существует ли файл на сервере
+        res.sendFile(filePath, (err) => {
+            if (err) {
+                console.error("Ошибка при отправке файла:", err.message);
+                return res.status(404).send("Файл не найден на сервере");
+            }
+        });
+    });
 });
 
 router.get("/", (req, res) => {

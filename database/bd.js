@@ -176,6 +176,7 @@ export function updateTask(taskId, title, description, startTime, endTime, execu
         });
     });
 }
+
 export function getTaskExecutors(taskId, callback) {
     const query = "SELECT executor FROM task_executors WHERE task_id = ?";
     querySelect(query, [taskId], (err, rows) => {

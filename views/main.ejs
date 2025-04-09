@@ -39,32 +39,34 @@
                     <span class="label text-font">Добавить</span>
                 </button>
                 <div id="add_dialog" class="dialog">
-                    <form action="/add_task" method="post" enctype="multipart/form-data">
+                    <form action="/add_task" method="post" enctype="multipart/form-data" onsubmit="return validateAddForm()">
                         <div class="dialog-content">
                             <span class="close-btn" id="close_add_dialog">×</span>
                             <p class="text-font text-black">Добавить задачу</p>
-                            <input name="title" type="text" placeholder="Введите имя" class="text-input">
-                            <textarea name="description" placeholder="Введите описание" class="text-input"></textarea>
+                            <input name="title" type="text" placeholder="Введите имя" class="text-input" required>
+                            <textarea name="description" placeholder="Введите описание" class="text-input" required></textarea>
                             <input type="datetime-local" id="start-time" name="start-time"
                                 value="<%= (new Date()).toISOString().slice(0, 16) %>"
-                                min="<%= (new Date()).toISOString().slice(0, 16) %>" />
+                                min="<%= (new Date()).toISOString().slice(0, 16) %>" required />
                             <input type="datetime-local" id="end-time" name="end-time"
                                 value="<%= (new Date()).toISOString().slice(0, 16) %>"
-                                min="<%= (new Date()).toISOString().slice(0, 16) %>" />
-                            <label for="executor" class="text-font text-black">Кому адресовано:</label>
-                            <select name="executor" class="selector2 text-black text-font">
+                                min="<%= (new Date()).toISOString().slice(0, 16) %>" required />
+                            <label class="text-font text-black">Кому адресовано (выберите исполнителей):</label>
+                            <div class="executor-checkboxes">
+                                <input type="hidden" name="executors[]" value="">
                                 <% if (users.length > 0) { %>
                                     <% for (let i of users.filter(user => user.Login !== currentUser.Login)) { %>
-                                        <option class="text-font text-black">
+                                        <label class="checkbox-label text-font text-black">
+                                            <input type="checkbox" name="executors[]" value="<%= i.Surname %> <%= i.Name %> <%= i.Patronymic %>">
                                             <%= i.Surname %> <%= i.Name %> <%= i.Patronymic %>
-                                        </option>
+                                        </label>
                                     <% } %>
                                 <% } else { %>
-                                    <option>Нет доступных пользователей</option>
+                                    <p class="text-font text-black">Нет доступных пользователей</p>
                                 <% } %>
-                            </select>
+                            </div>
                             <label for="type" class="text-font text-black">Тип задачи:</label>
-                            <select name="type" id="type" class="selector2 text-black text-font">
+                            <select name="type" id="type" class="selector2 text-black text-font" required>
                                 <option value="Обычная">Обычная</option>
                                 <option value="Срочная">Срочная</option>
                                 <option value="Долгосрочная">Долгосрочная</option>
@@ -103,7 +105,7 @@
                             </div>
                         </div>
                     </div>
-                    <% const getFileName = (filePath) => filePath.split('/').pop(); %>
+                    <% const getFileName = (filePath) => filePath ? filePath.split('/').pop() : ''; %>
                     <div class="text-font creator">Ваши задачи:</div>
                     <% if (tasksinworks && tasksinworks.length > 0) { %>
                         <div class="buttons-container button">
@@ -127,7 +129,7 @@
                                         <p class="text-font">Срок: <%= (new Date(i.Date_end)).toLocaleDateString() %></p>
                                     </div>
                                     <div class="footer">
-                                        <p class="text-font">Исполнитель: <%= i.Creator_name %></p>
+                                        <p class="text-font">Исполнители: <%= i.executors.join(', ') || 'Не назначены' %></p>
                                     </div>
                                     <div class="footer">
                                         <div class="text-font">
@@ -183,7 +185,7 @@
                                                data-description="<%= i.Desc %>"
                                                data-start-time="<%= i.Date_start %>"
                                                data-end-time="<%= i.Date_end %>"
-                                               data-executor="<%= i.Executer %>"
+                                               data-executors="<%= JSON.stringify(i.executors) %>"
                                                data-type="<%= i.Type %>">
                                     </div>
                                     <div class="footer">
@@ -191,6 +193,9 @@
                                     </div>
                                     <div class="footer">
                                         <p class="text-font">Срок: <%= (new Date(i.Date_end)).toLocaleDateString() %></p>
+                                    </div>
+                                    <div class="footer">
+                                        <p class="text-font">Исполнители: <%= i.executors.join(', ') || 'Не назначены' %></p>
                                     </div>
                                     <div class="footer">
                                         <div class="text-font">
@@ -203,9 +208,6 @@
                                                 В процессе
                                             <% } %>
                                         </div>
-                                    </div>
-                                    <div class="footer">
-                                        <p class="text-font">Исполнитель: <%= i.Executer %></p>
                                     </div>
                                     <div class="footer">
                                         <form action="/delete_task" method="POST" style="display:inline;">
@@ -235,24 +237,26 @@
                                 <span class="close-btn" id="close_edit_dialog">×</span>
                                 <p class="text-font text-black">Редактировать задачу</p>
                                 <input type="hidden" name="taskId" id="edit_taskId">
-                                <input name="title" id="edit_title" type="text" placeholder="Введите имя" class="text-input">
-                                <textarea name="description" id="edit_description" placeholder="Введите описание" class="text-input"></textarea>
-                                <input type="datetime-local" id="edit_start-time" name="start-time" class="text-input">
-                                <input type="datetime-local" id="edit_end-time" name="end-time" class="text-input">
-                                <label for="edit_executor" class="text-font text-black">Кому адресовано:</label>
-                                <select name="executor" id="edit_executor" class="selector2 text-black text-font">
+                                <input name="title" id="edit_title" type="text" placeholder="Введите имя" class="text-input" required>
+                                <textarea name="description" id="edit_description" placeholder="Введите описание" class="text-input" required></textarea>
+                                <input type="datetime-local" id="edit_start-time" name="start-time" class="text-input" required>
+                                <input type="datetime-local" id="edit_end-time" name="end-time" class="text-input" required>
+                                <label class="text-font text-black">Кому адресовано (выберите исполнителей):</label>
+                                <div class="executor-checkboxes">
+                                    <input type="hidden" name="executors[]" value="">
                                     <% if (users.length > 0) { %>
                                         <% for (let i of users.filter(user => user.Login !== currentUser.Login)) { %>
-                                            <option class="text-font text-black">
+                                            <label class="checkbox-label text-font text-black">
+                                                <input type="checkbox" name="executors[]" value="<%= i.Surname %> <%= i.Name %> <%= i.Patronymic %>">
                                                 <%= i.Surname %> <%= i.Name %> <%= i.Patronymic %>
-                                            </option>
+                                            </label>
                                         <% } %>
                                     <% } else { %>
-                                        <option>Нет доступных пользователей</option>
+                                        <p class="text-font text-black">Нет доступных пользователей</p>
                                     <% } %>
-                                </select>
+                                </div>
                                 <label for="edit_type" class="text-font text-black">Тип задачи:</label>
-                                <select name="type" id="edit_type" class="selector2 text-black text-font">
+                                <select name="type" id="edit_type" class="selector2 text-black text-font" required>
                                     <option value="Обычная">Обычная</option>
                                     <option value="Срочная">Срочная</option>
                                     <option value="Долгосрочная">Долгосрочная</option>

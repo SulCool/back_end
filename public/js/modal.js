@@ -35,17 +35,15 @@ document.addEventListener('DOMContentLoaded', () => {
         button.addEventListener('click', () => {
             const taskId = button.id.replace('open_edit_dialog_', '');
             const taskData = document.querySelector(`.task-data[data-task-id="${taskId}"]`);
-
             if (!taskData) {
                 console.error('Данные задачи не найдены!');
                 return;
             }
-
             const title = taskData.dataset.title;
             const description = taskData.dataset.description;
             const startTime = taskData.dataset.startTime;
             const endTime = taskData.dataset.endTime;
-            const executor = taskData.dataset.executor;
+            const executors = JSON.parse(taskData.dataset.executors);
             const type = taskData.dataset.type;
 
             document.getElementById('edit_taskId').value = taskId;
@@ -53,7 +51,11 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('edit_description').value = description;
             document.getElementById('edit_start-time').value = startTime.slice(0, 16);
             document.getElementById('edit_end-time').value = endTime.slice(0, 16);
-            document.getElementById('edit_executor').value = executor;
+
+            const executorCheckboxes = document.querySelectorAll('.executor-checkboxes input[name="executors[]"]');
+            executorCheckboxes.forEach(checkbox => {
+                checkbox.checked = executors.includes(checkbox.value);
+            });
             document.getElementById('edit_type').value = type;
 
             editDialog.style.display = 'block';

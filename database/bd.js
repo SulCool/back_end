@@ -64,22 +64,36 @@ export function updateUser(oldLogin, newLogin, surname, name, patronymic, post, 
     });
 }
 
-export function addTask(title, description, startTime, endTime, creator, executor, creatorName, filePath, type, callback) {
-    const query = `
-        INSERT INTO tasks (Title, Desc, Date_start, Date_end, Creator, Executer, Creator_name, File_path, Type)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+export function addTask(title, description, startTime, endTime, creator, executors, creatorName, filePath, type, callback) {
+    const queryTask = `
+        INSERT INTO tasks (Title, Desc, Date_start, Date_end, Creator, Creator_name, File_path, Type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    queryRun(query, [title, description, startTime, endTime, creator, executor, creatorName, filePath, type], (err, lastID) => {
+    queryRun(queryTask, [title, description, startTime, endTime, creator, creatorName, filePath, type], (err, taskId) => {
         if (err) {
             callback(err);
-        } else {
-            callback(null, lastID);
+            return;
         }
+        const queryExecutors = "INSERT INTO task_executors (task_id, executor) VALUES (?, ?)";
+        let errors = [];
+        let completed = 0;
+        executors.forEach(executor => {
+            queryRun(queryExecutors, [taskId, executor], (err) => {
+                if (err) errors.push(err);
+                completed++;
+                if (completed === executors.length) {
+                    callback(errors.length > 0 ? errors : null, taskId);
+                }
+            });
+        });
     });
 }
-
 export function getTasksByExecutor(user, callback) {
-    const query = "SELECT * FROM tasks WHERE Executer = ?";
+    const query = `
+        SELECT t.* FROM tasks t
+        JOIN task_executors te ON t.id = te.task_id
+        WHERE te.executor = ?
+    `;
     querySelect(query, [user], callback);
 }
 
@@ -125,21 +139,51 @@ export function getAllTasks(callback) {
     querySelect(query, [], callback);
 }
 
-export function updateTask(taskId, title, description, startTime, endTime, executor, filePath, type, callback) {
+export function updateTask(taskId, title, description, startTime, endTime, executors, filePath, type, callback) {
     const dateUpdated = new Date().toISOString();
-    const query = `
+    const queryTask = `
         UPDATE tasks 
-        SET Title = ?, Desc = ?, Date_start = ?, Date_end = ?, Executer = ?, File_path = ?, Date_updated = ?, Type = ?
+        SET Title = ?, Desc = ?, Date_start = ?, Date_end = ?, File_path = ?, Date_updated = ?, Type = ?
         WHERE id = ?
     `;
-    queryRun(query, [title, description, startTime, endTime, executor, filePath, dateUpdated, type, taskId], (err, changes) => {
+    queryRun(queryTask, [title, description, startTime, endTime, filePath, dateUpdated, type, taskId], (err, changes) => {
         if (err) {
-            console.error("Ошибка при обновлении задачи:", err.message);
             callback(err, null);
-        } else if (changes === 0) {
+            return;
+        }
+        if (changes === 0) {
             callback(new Error("Задача с таким ID не найдена"), null);
+            return;
+        }
+        const deleteQuery = "DELETE FROM task_executors WHERE task_id = ?";
+        queryRun(deleteQuery, [taskId], (err) => {
+            if (err) {
+                callback(err, null);
+                return;
+            }
+            const insertQuery = "INSERT INTO task_executors (task_id, executor) VALUES (?, ?)";
+            let errors = [];
+            let completed = 0;
+            executors.forEach(executor => {
+                queryRun(insertQuery, [taskId, executor], (err) => {
+                    if (err) errors.push(err);
+                    completed++;
+                    if (completed === executors.length) {
+                        callback(errors.length > 0 ? errors : null, changes);
+                    }
+                });
+            });
+        });
+    });
+}
+export function getTaskExecutors(taskId, callback) {
+    const query = "SELECT executor FROM task_executors WHERE task_id = ?";
+    querySelect(query, [taskId], (err, rows) => {
+        if (err) {
+            console.error("Ошибка при получении исполнителей задачи:", err.message);
+            callback(err, null);
         } else {
-            callback(null, changes);
+            callback(null, rows);
         }
     });
 }
@@ -179,10 +223,10 @@ export function getTaskStatsByExecutor(executorName, callback) {
 
     const query = `
         SELECT 
-            (SELECT COUNT(*) FROM tasks WHERE Executer = ?) as totalAssigned,
-            (SELECT COUNT(*) FROM tasks WHERE Executer = ? AND Date_ended IS NOT NULL) as totalCompleted,
-            (SELECT COUNT(*) FROM tasks WHERE Executer = ? AND Date_start >= ?) as monthAssigned,
-            (SELECT COUNT(*) FROM tasks WHERE Executer = ? AND Date_ended >= ?) as monthCompleted
+            (SELECT COUNT(*) FROM tasks t JOIN task_executors te ON t.id = te.task_id WHERE te.executor = ?) as totalAssigned,
+            (SELECT COUNT(*) FROM tasks t JOIN task_executors te ON t.id = te.task_id WHERE te.executor = ? AND t.Date_ended IS NOT NULL) as totalCompleted,
+            (SELECT COUNT(*) FROM tasks t JOIN task_executors te ON t.id = te.task_id WHERE te.executor = ? AND t.Date_start >= ?) as monthAssigned,
+            (SELECT COUNT(*) FROM tasks t JOIN task_executors te ON t.id = te.task_id WHERE te.executor = ? AND t.Date_ended >= ?) as monthCompleted
     `;
     querySelect(query, [executorName, executorName, executorName, monthAgoISO, executorName, monthAgoISO], (err, rows) => {
         if (err) {

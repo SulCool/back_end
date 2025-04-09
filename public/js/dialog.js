@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const addDialog = document.getElementById('add_dialog');
     const closeAddDialog = document.getElementById('close_add_dialog');
 
-
     if (!addDialog || !closeAddDialog || !openAddDialog) {
         console.error('Dialog modal, close button или open button не найдены!');
         return;
@@ -24,3 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+function validateAddForm() {
+    return true;
+}

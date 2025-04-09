@@ -132,3 +132,27 @@ label {
 .stats-section p {
     margin: 5px 0;
 }
+
+select[multiple] {
+    height: 100px;
+    width: 100%;
+    padding: 5px;
+}
+
+.executor-checkboxes {
+    max-height: 150px;
+    overflow-y: auto;
+    margin: 10px 0;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.checkbox-label {
+    display: block;
+    margin: 5px 0;
+}
+
+.checkbox-label input {
+    margin-right: 10px;
+}

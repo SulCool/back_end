@@ -1,5 +1,5 @@
 import express from "express";
-import { getUsers, getUserByLogin, addUser, updateUser, deleteUser, getTasksByCreator, getTasksByExecutor, getTaskStatsByCreator, getTaskStatsByExecutor } from "../database/bd.js";
+import { getUsers, getUserByLogin, addUser, updateUser, deleteUser, getTasksByCreator, getTasksByExecutor, getTaskStatsByCreator, getTaskStatsByExecutor, getTaskExecutors } from "../database/bd.js";
 import { fileURLToPath } from "url";
 import path from "path";
 
@@ -28,10 +28,7 @@ router.get("/", (req, res) => {
             return res.status(500).send("Ошибка сервера");
         }
         const filteredUsers = users.filter(user => user.Login !== currentUser.Login && user.Login !== "a");
-        let executer = "";
-        if (currentUser.Surname && currentUser.Name && currentUser.Patronymic) {
-            executer = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
-        }
+        let executer = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
         getTasksByCreator(currentUser.Login, (err, taskcreators) => {
             if (err) {
                 console.error("Ошибка при получении задач создателя:", err.message);
@@ -48,11 +45,24 @@ router.get("/", (req, res) => {
                 tasksinworks.sort((a, b) => {
                     const titleA = (a.Title && a.Title.toLowerCase()) || "";
                     const titleB = (b.Title && b.Title.toLowerCase()) || "";
-                    return sortOrder === "asc"
-                        ? titleA.localeCompare(titleB)
-                        : titleB.localeCompare(titleA);
+                    return sortOrder === "asc" ? titleA.localeCompare(titleB) : titleB.localeCompare(titleA);
                 });
-                res.render("main", { tasksinworks, users: filteredUsers, currentUser, taskcreators, sortOrder, selectedUser });
+                const loadExecutors = (tasks, cb) => {
+                    let completed = 0;
+                    tasks.forEach(task => {
+                        getTaskExecutors(task.id, (err, executors) => {
+                            task.executors = err ? [] : executors.map(e => e.executor);
+                            completed++;
+                            if (completed === tasks.length) cb();
+                        });
+                    });
+                    if (tasks.length === 0) cb();
+                };
+                loadExecutors(tasksinworks, () => {
+                    loadExecutors(taskcreators, () => {
+                        res.render("main", { tasksinworks, users: filteredUsers, currentUser, taskcreators, sortOrder, selectedUser });
+                    });
+                });
             });
         });
     });

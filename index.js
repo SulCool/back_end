@@ -3,8 +3,9 @@ import cookieParser from "cookie-parser";
 import { authMiddleware } from "./middlewares/authMiddleware.js";
 import { userRoutes } from "./routes/userRoutes.js";
 import { router as taskRoutes } from "./routes/taskRoutes.js";
-import { fileURLToPath } from "url"; 
+import { fileURLToPath } from "url";
 import path from "path";
+import { checkDeadlines } from "./telegramBot.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,6 +26,8 @@ app.set("views", path.join(__dirname, "views"));
 app.use(authMiddleware);
 app.use(userRoutes);
 app.use(taskRoutes);
+
+checkDeadlines();
 
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);

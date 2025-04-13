@@ -3,6 +3,7 @@ import { queryRun, querySelect, getUserByLogin } from './database/bd.js';
 
 const token = '';
 const bot = new TelegramBot(token, { polling: true });
+
 bot.onText(/\/start (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const login = match[1];
@@ -83,4 +84,6 @@ export function checkDeadlines() {
     });
 }
 
-setInterval(checkDeadlines, 5 * 60 * 1000);
+setInterval(checkDeadlines, 5 * 60 * 1000); 
+
+export { bot };

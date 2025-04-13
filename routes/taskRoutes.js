@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { upload } from "../multerConfig.js";
-import { addTask, completeTask, deleteTask, updateTask, getTaskById } from "../database/bd.js";
+import { addTask, completeTask, deleteTask, updateTask, getTaskById, getTaskExecutors, querySelect } from "../database/bd.js";
+import { sendNotification } from "../telegramBot.js";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -52,35 +53,98 @@ router.post("/add_task", upload.single("file"), (req, res) => {
     }
     const filePath = req.file ? `/uploads/${req.file.filename}` : null;
     const userName = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
-    addTask(title, description, startTime, endTime, currentUser.Login, selectedExecutors, userName, filePath, type, (err) => {
+    addTask(title, description, startTime, endTime, currentUser.Login, selectedExecutors, userName, filePath, type, (err, taskId) => {
         if (err) {
             console.error("Ошибка при добавлении задачи:", err.message);
             return res.status(500).send("Ошибка сервера");
         }
+        selectedExecutors.forEach((executor) => {
+            const queryUser = 'SELECT id FROM users WHERE CONCAT(Surname, " ", Name, " ", Patronymic) = ?';
+            querySelect(queryUser, [executor], (err, userRows) => {
+                if (err || userRows.length === 0) {
+                    console.error(`Пользователь ${executor} не найден`);
+                    return;
+                }
+                const userId = userRows[0].id;
+                const message = `Вам назначена задача "${title}". Дедлайн: ${new Date(endTime).toLocaleDateString()}.`;
+                sendNotification(userId, message);
+            });
+        });
         return res.redirect("/");
     });
 });
 
 router.post("/complete_task", (req, res) => {
     const { taskId } = req.body;
-    completeTask(taskId, (err) => {
-        if (err) {
-            console.error("Ошибка при завершении задачи:", err.message);
+    const dateEnded = new Date().toISOString();
+    querySelect('SELECT Title FROM tasks WHERE id = ?', [taskId], (err, taskRows) => {
+        if (err || taskRows.length === 0) {
+            console.error("Ошибка при получении задачи:", err?.message);
             return res.status(500).send("Ошибка сервера");
         }
-        res.redirect("/");
+        const title = taskRows[0].Title;
+        completeTask(taskId, dateEnded, (err) => {
+            if (err) {
+                console.error("Ошибка при завершении задачи:", err.message);
+                return res.status(500).send("Ошибка сервера");
+            }
+            getTaskExecutors(taskId, (err, executorRows) => {
+                if (err) {
+                    console.error("Ошибка при получении исполнителей:", err.message);
+                    return;
+                }
+                executorRows.forEach((row) => {
+                    const queryUser = 'SELECT id FROM users WHERE CONCAT(Surname, " ", Name, " ", Patronymic) = ?';
+                    querySelect(queryUser, [row.executor], (err, userRows) => {
+                        if (err || userRows.length === 0) {
+                            console.error(`Пользователь ${row.executor} не найден`);
+                            return;
+                        }
+                        const userId = userRows[0].id;
+                        const message = `Задача "${title}" завершена.`;
+                        sendNotification(userId, message);
+                    });
+                });
+            });
+            res.redirect("/");
+        });
     });
 });
 
 router.post("/delete_task", (req, res) => {
     const { taskId } = req.body;
     console.log("[DEBUG] req.body для /delete_task:", req.body);
-    deleteTask(taskId, (err) => {
-        if (err) {
-            console.error("Ошибка при удалении задачи:", err.message);
+    querySelect('SELECT Title FROM tasks WHERE id = ?', [taskId], (err, taskRows) => {
+        if (err || taskRows.length === 0) {
+            console.error("Ошибка при получении задачи:", err?.message);
             return res.status(500).send("Ошибка сервера");
         }
-        res.redirect("/");
+        const title = taskRows[0].Title;
+        getTaskExecutors(taskId, (err, executorRows) => {
+            if (err) {
+                console.error("Ошибка при получении исполнителей:", err.message);
+                return res.status(500).send("Ошибка сервера");
+            }
+            executorRows.forEach((row) => {
+                const queryUser = 'SELECT id FROM users WHERE CONCAT(Surname, " ", Name, " ", Patronymic) = ?';
+                querySelect(queryUser, [row.executor], (err, userRows) => {
+                    if (err || userRows.length === 0) {
+                        console.error(`Пользователь ${row.executor} не найден`);
+                        return;
+                    }
+                    const userId = userRows[0].id;
+                    const message = `Задача "${title}" была удалена.`;
+                    sendNotification(userId, message);
+                });
+            });
+            deleteTask(taskId, (err) => {
+                if (err) {
+                    console.error("Ошибка при удалении задачи:", err.message);
+                    return res.status(500).send("Ошибка сервера");
+                }
+                res.redirect("/");
+            });
+        });
     });
 });
 
@@ -131,6 +195,24 @@ router.post("/edit_task", upload.single("file"), async (req, res) => {
                 console.error("Ошибка при обновлении задачи:", err.message);
                 return res.status(500).send("Ошибка сервера");
             }
+            getTaskExecutors(taskId, (err, executorRows) => {
+                if (err) {
+                    console.error("Ошибка при получении исполнителей:", err.message);
+                    return;
+                }
+                executorRows.forEach((row) => {
+                    const queryUser = 'SELECT id FROM users WHERE CONCAT(Surname, " ", Name, " ", Patronymic) = ?';
+                    querySelect(queryUser, [row.executor], (err, userRows) => {
+                        if (err || userRows.length === 0) {
+                            console.error(`Пользователь ${row.executor} не найден`);
+                            return;
+                        }
+                        const userId = userRows[0].id;
+                        const message = `Задача "${title}" была изменена. Новый дедлайн: ${new Date(endTime).toLocaleDateString()}.`;
+                        sendNotification(userId, message);
+                    });
+                });
+            });
             res.redirect("/");
         });
     } catch (err) {

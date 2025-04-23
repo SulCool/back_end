@@ -2,8 +2,9 @@ import { getUserByLogin } from "../database/bd.js";
 
 export const authMiddleware = (req, res, next) => {
     console.log("[DEBUG authMiddleware] Путь запроса:", req.path);
-    if (req.path.startsWith("/download")) {
-        console.log("[DEBUG authMiddleware] Пропускаем проверку для /download");
+
+    if (req.path.startsWith("/download") || req.path === "/log_sign" || req.path === "/login" || req.path === "/signup") {
+        console.log("[DEBUG authMiddleware] Пропускаем проверку для", req.path);
         return next();
     }
 

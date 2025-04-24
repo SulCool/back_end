@@ -168,3 +168,10 @@ select[multiple] {
 .checkbox-label input {
     margin-right: 10px;
 }
+
+.error-message {
+    color: #ff6666;
+    margin-bottom: 10px;
+    font-weight: normal;
+    font-size: 14px;
+}

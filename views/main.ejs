@@ -43,6 +43,9 @@
                         <div class="dialog-content">
                             <span class="close-btn" id="close_add_dialog">×</span>
                             <p class="text-font text-black">Добавить задачу</p>
+                            <% if (typeof error !== 'undefined') { %>
+                                <p class="error-message text-font text-black"><%= error %></p>
+                            <% } %>
                             <input name="title" type="text" placeholder="Введите имя" class="text-input" required>
                             <textarea name="description" placeholder="Введите описание" class="text-input" required></textarea>
                             <input type="datetime-local" id="start-time" name="start-time"

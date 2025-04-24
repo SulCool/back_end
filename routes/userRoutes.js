@@ -14,7 +14,6 @@ router.get("*", (req, res, next) => {
     next();
 });
 
-// Новый маршрут для скачивания файлов
 router.get("/download/:filename", (req, res) => {
     const filename = req.params.filename;
     console.log(`[DEBUG] Запрос на скачивание файла: ${filename}`);
@@ -32,7 +31,6 @@ router.get("/download/:filename", (req, res) => {
         const filePath = path.join(__dirname, "..", task.File_path);
         console.log(`[DEBUG] Путь к файлу: ${filePath}`);
 
-        // Проверяем, существует ли файл на сервере
         res.sendFile(filePath, (err) => {
             if (err) {
                 console.error("Ошибка при отправке файла:", err.message);

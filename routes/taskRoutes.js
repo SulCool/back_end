@@ -33,24 +33,34 @@ router.post("/add_task", upload.single("file"), (req, res) => {
     console.log("endTime:", endTime);
     console.log("type.trim():", type?.trim());
 
+    // Проверка обязательных полей
     if (!title?.trim() || !description?.trim() || !startTime || !endTime || !type?.trim()) {
         console.log("[DEBUG] Ошибка: не все обязательные поля заполнены");
-        return res.status(400).send("Все поля, кроме исполнителей, должны быть заполнены");
+        return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Все поля, кроме исполнителей, должны быть заполнены");
     }
 
     const startDate = new Date(startTime);
     const endDate = new Date(endTime);
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
         console.log("[DEBUG] Ошибка: некорректный формат даты");
-        return res.status(400).send("Некорректный формат даты");
+        return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Некорректный формат даты");
     }
 
+    // Обработка исполнителей
     const selectedExecutors = Array.isArray(executors) ? executors.filter(e => e !== "") : [];
     console.log("[DEBUG] Выбранные исполнители:", selectedExecutors);
 
-    if (selectedExecutors.includes(currentUser.Login)) {
-        return res.status(400).send("Вы не можете назначить задачу самому себе");
+    // Проверка, что выбран хотя бы один исполнитель
+    if (selectedExecutors.length === 0) {
+        console.log("[DEBUG] Ошибка: не выбран ни один исполнитель");
+        return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Необходимо выбрать хотя бы одного исполнителя");
     }
+
+    // Проверка, что пользователь не назначает задачу самому себе
+    if (selectedExecutors.includes(currentUser.Login)) {
+        return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Вы не можете назначить задачу самому себе");
+    }
+
     const filePath = req.file ? `/uploads/${req.file.filename}` : null;
     const userName = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
     addTask(title, description, startTime, endTime, currentUser.Login, selectedExecutors, userName, filePath, type, (err, taskId) => {
@@ -73,6 +83,53 @@ router.post("/add_task", upload.single("file"), (req, res) => {
         return res.redirect("/");
     });
 });
+
+function loadDataAndRender(res, currentUser, sortOrder, selectedUser, error) {
+    getUsers((err, users) => {
+        if (err) {
+            console.error("Ошибка при загрузке пользователей:", err.message);
+            return res.status(500).send("Ошибка сервера");
+        }
+        const filteredUsers = users.filter(user => user.Login !== currentUser.Login && user.Login !== "a");
+        const executer = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
+        getTasksByCreator(currentUser.Login, (err, taskcreators) => {
+            if (err) {
+                console.error("Ошибка при получении задач создателя:", err.message);
+                return res.status(500).send("Ошибка сервера");
+            }
+            getTasksByExecutor(executer, (err, tasksinworks) => {
+                if (err) {
+                    console.error("Ошибка при получении задач исполнителя:", err.message);
+                    return res.status(500).send("Ошибка сервера");
+                }
+                if (selectedUser !== "all") {
+                    tasksinworks = tasksinworks.filter(task => task.Creator === selectedUser);
+                }
+                tasksinworks.sort((a, b) => {
+                    const titleA = (a.Title && a.Title.toLowerCase()) || "";
+                    const titleB = (b.Title && b.Title.toLowerCase()) || "";
+                    return sortOrder === "asc" ? titleA.localeCompare(titleB) : titleB.localeCompare(titleA);
+                });
+                const loadExecutors = (tasks, cb) => {
+                    let completed = 0;
+                    tasks.forEach(task => {
+                        getTaskExecutors(task.id, (err, executors) => {
+                            task.executors = err ? [] : executors.map(e => e.executor);
+                            completed++;
+                            if (completed === tasks.length) cb();
+                        });
+                    });
+                    if (tasks.length === 0) cb();
+                };
+                loadExecutors(tasksinworks, () => {
+                    loadExecutors(taskcreators, () => {
+                        res.render("main", { tasksinworks, users: filteredUsers, currentUser, taskcreators, sortOrder, selectedUser, error });
+                    });
+                });
+            });
+        });
+    });
+}
 
 router.post("/complete_task", (req, res) => {
     const { taskId } = req.body;

@@ -33,7 +33,6 @@ router.post("/add_task", upload.single("file"), (req, res) => {
     console.log("endTime:", endTime);
     console.log("type.trim():", type?.trim());
 
-    // Проверка обязательных полей
     if (!title?.trim() || !description?.trim() || !startTime || !endTime || !type?.trim()) {
         console.log("[DEBUG] Ошибка: не все обязательные поля заполнены");
         return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Все поля, кроме исполнителей, должны быть заполнены");
@@ -46,17 +45,14 @@ router.post("/add_task", upload.single("file"), (req, res) => {
         return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Некорректный формат даты");
     }
 
-    // Обработка исполнителей
     const selectedExecutors = Array.isArray(executors) ? executors.filter(e => e !== "") : [];
     console.log("[DEBUG] Выбранные исполнители:", selectedExecutors);
 
-    // Проверка, что выбран хотя бы один исполнитель
     if (selectedExecutors.length === 0) {
         console.log("[DEBUG] Ошибка: не выбран ни один исполнитель");
         return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Необходимо выбрать хотя бы одного исполнителя");
     }
 
-    // Проверка, что пользователь не назначает задачу самому себе
     if (selectedExecutors.includes(currentUser.Login)) {
         return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Вы не можете назначить задачу самому себе");
     }
@@ -85,6 +81,11 @@ router.post("/add_task", upload.single("file"), (req, res) => {
 });
 
 function loadDataAndRender(res, currentUser, sortOrder, selectedUser, error) {
+    const validSortOrders = ["asc", "desc"];
+    const validSortCriteria = ["title", "start", "end"];
+    sortOrder = validSortOrders.includes(sortOrder) ? sortOrder : "asc";
+    const sortBy = validSortCriteria.includes(res.req.query.sortBy) ? res.req.query.sortBy : "title";
+
     getUsers((err, users) => {
         if (err) {
             console.error("Ошибка при загрузке пользователей:", err.message);
@@ -105,11 +106,31 @@ function loadDataAndRender(res, currentUser, sortOrder, selectedUser, error) {
                 if (selectedUser !== "all") {
                     tasksinworks = tasksinworks.filter(task => task.Creator === selectedUser);
                 }
-                tasksinworks.sort((a, b) => {
-                    const titleA = (a.Title && a.Title.toLowerCase()) || "";
-                    const titleB = (b.Title && b.Title.toLowerCase()) || "";
-                    return sortOrder === "asc" ? titleA.localeCompare(titleB) : titleB.localeCompare(titleA);
-                });
+
+                const sortTasks = (tasks) => {
+                    tasks.sort((a, b) => {
+                        if (sortBy === "title") {
+                            const titleA = (a.Title && a.Title.toLowerCase()) || "";
+                            const titleB = (b.Title && b.Title.toLowerCase()) || "";
+                            return sortOrder === "asc" 
+                                ? titleA.localeCompare(titleB, "ru-RU") 
+                                : titleB.localeCompare(titleA, "ru-RU");
+                        } else if (sortBy === "start") {
+                            const dateA = new Date(a.Date_start);
+                            const dateB = new Date(b.Date_start);
+                            return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+                        } else if (sortBy === "end") {
+                            const dateA = new Date(a.Date_end);
+                            const dateB = new Date(b.Date_end);
+                            return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+                        }
+                        return 0;
+                    });
+                };
+
+                sortTasks(tasksinworks);
+                sortTasks(taskcreators);
+
                 const loadExecutors = (tasks, cb) => {
                     let completed = 0;
                     tasks.forEach(task => {
@@ -121,9 +142,10 @@ function loadDataAndRender(res, currentUser, sortOrder, selectedUser, error) {
                     });
                     if (tasks.length === 0) cb();
                 };
+
                 loadExecutors(tasksinworks, () => {
                     loadExecutors(taskcreators, () => {
-                        res.render("main", { tasksinworks, users: filteredUsers, currentUser, taskcreators, sortOrder, selectedUser, error });
+                        res.render("main", { tasksinworks, users: filteredUsers, currentUser, taskcreators, sortOrder, sortBy, selectedUser, error });
                     });
                 });
             });

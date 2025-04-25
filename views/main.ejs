@@ -97,13 +97,47 @@
                                     </option>
                                 <% } %>
                             </select>
+                            <!-- Скрытое поле для сохранения текущих параметров сортировки -->
+                            <input type="hidden" name="sort" value="<%= sortOrder %>">
+                            <input type="hidden" name="sortBy" value="<%= sortBy %>">
                         </form>
                         <div class="dropdown">
                             <img src="/icons/sort.png" class="dropbtn">
                             <div class="dropdown-content">
                                 <div class="text-font sort-buttons">
-                                    <a href="/?sort=asc" class="sort-buttons" <% if (sortOrder === 'asc') { %>selected<% } %>>От А до Я</a>
-                                    <a href="/?sort=desc" class="sort-buttons" <% if (sortOrder === 'desc') { %>selected<% } %>>От Я до А</a>
+                                    <!-- Сортировка по названию -->
+                                    <a href="/?sortBy=title&sort=asc&user=<%= selectedUser %>" 
+                                       class="sort-buttons" 
+                                       <%= sortBy === 'title' && sortOrder === 'asc' ? 'style="background-color: #d87236;"' : '' %>>
+                                       Название: от А до Я
+                                    </a>
+                                    <a href="/?sortBy=title&sort=desc&user=<%= selectedUser %>" 
+                                       class="sort-buttons" 
+                                       <%= sortBy === 'title' && sortOrder === 'desc' ? 'style="background-color: #d87236;"' : '' %>>
+                                       Название: от Я до А
+                                    </a>
+                                    <!-- Сортировка по дате начала -->
+                                    <a href="/?sortBy=start&sort=asc&user=<%= selectedUser %>" 
+                                       class="sort-buttons" 
+                                       <%= sortBy === 'start' && sortOrder === 'asc' ? 'style="background-color: #d87236;"' : '' %>>
+                                       Дата начала: по возрастанию
+                                    </a>
+                                    <a href="/?sortBy=start&sort=desc&user=<%= selectedUser %>" 
+                                       class="sort-buttons" 
+                                       <%= sortBy === 'start' && sortOrder === 'desc' ? 'style="background-color: #d87236;"' : '' %>>
+                                       Дата начала: по убыванию
+                                    </a>
+                                    <!-- Сортировка по дедлайну -->
+                                    <a href="/?sortBy=end&sort=asc&user=<%= selectedUser %>" 
+                                       class="sort-buttons" 
+                                       <%= sortBy === 'end' && sortOrder === 'asc' ? 'style="background-color: #d87236;"' : '' %>>
+                                       Дедлайн: по возрастанию
+                                    </a>
+                                    <a href="/?sortBy=end&sort=desc&user=<%= selectedUser %>" 
+                                       class="sort-buttons" 
+                                       <%= sortBy === 'end' && sortOrder === 'desc' ? 'style="background-color: #d87236;"' : '' %>>
+                                       Дедлайн: по убыванию
+                                    </a>
                                 </div>
                             </div>
                         </div>

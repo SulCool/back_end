@@ -46,8 +46,13 @@ router.get("/", (req, res) => {
         console.error("Текущий пользователь не определён.");
         return res.status(401).send("Необходима авторизация");
     }
-    const sortOrder = req.query.sort || "asc";
+
+    const validSortOrders = ["asc", "desc"];
+    const validSortCriteria = ["title", "start", "end"];
+    const sortOrder = validSortOrders.includes(req.query.sort) ? req.query.sort : "asc";
+    const sortBy = validSortCriteria.includes(req.query.sortBy) ? req.query.sortBy : "title";
     const selectedUser = req.query.user || "all";
+
     getUsers((err, users) => {
         if (err) {
             console.error("Ошибка при загрузке пользователей:", err.message);
@@ -68,11 +73,31 @@ router.get("/", (req, res) => {
                 if (selectedUser !== "all") {
                     tasksinworks = tasksinworks.filter(task => task.Creator === selectedUser);
                 }
-                tasksinworks.sort((a, b) => {
-                    const titleA = (a.Title && a.Title.toLowerCase()) || "";
-                    const titleB = (b.Title && b.Title.toLowerCase()) || "";
-                    return sortOrder === "asc" ? titleA.localeCompare(titleB) : titleB.localeCompare(titleA);
-                });
+
+                const sortTasks = (tasks) => {
+                    tasks.sort((a, b) => {
+                        if (sortBy === "title") {
+                            const titleA = (a.Title && a.Title.toLowerCase()) || "";
+                            const titleB = (b.Title && b.Title.toLowerCase()) || "";
+                            return sortOrder === "asc" 
+                                ? titleA.localeCompare(titleB, "ru-RU") 
+                                : titleB.localeCompare(titleA, "ru-RU");
+                        } else if (sortBy === "start") {
+                            const dateA = new Date(a.Date_start);
+                            const dateB = new Date(b.Date_start);
+                            return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+                        } else if (sortBy === "end") {
+                            const dateA = new Date(a.Date_end);
+                            const dateB = new Date(b.Date_end);
+                            return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+                        }
+                        return 0;
+                    });
+                };
+
+                sortTasks(tasksinworks);
+                sortTasks(taskcreators);
+
                 const loadExecutors = (tasks, cb) => {
                     let completed = 0;
                     tasks.forEach(task => {
@@ -84,9 +109,10 @@ router.get("/", (req, res) => {
                     });
                     if (tasks.length === 0) cb();
                 };
+
                 loadExecutors(tasksinworks, () => {
                     loadExecutors(taskcreators, () => {
-                        res.render("main", { tasksinworks, users: filteredUsers, currentUser, taskcreators, sortOrder, selectedUser });
+                        res.render("main", { tasksinworks, users: filteredUsers, currentUser, taskcreators, sortOrder, sortBy, selectedUser });
                     });
                 });
             });

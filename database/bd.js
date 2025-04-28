@@ -161,6 +161,10 @@ export function updateTask(taskId, title, description, startTime, endTime, execu
                 callback(err, null);
                 return;
             }
+            if (executors.length === 0) {
+                callback(null, changes);
+                return;
+            }
             const insertQuery = "INSERT INTO task_executors (task_id, executor) VALUES (?, ?)";
             let errors = [];
             let completed = 0;

@@ -81,28 +81,48 @@ router.post("/add_task", upload.single("file"), (req, res) => {
 });
 
 function loadDataAndRender(res, currentUser, sortOrder, selectedUser, error) {
+    if (res.headersSent) {
+        console.error("[DEBUG] Заголовки уже отправлены, не могу рендерить страницу");
+        return;
+    }
+
     const validSortOrders = ["asc", "desc"];
     const validSortCriteria = ["title", "start", "end"];
     sortOrder = validSortOrders.includes(sortOrder) ? sortOrder : "asc";
-    const sortBy = validSortCriteria.includes(res.req.query.sortBy) ? res.req.query.sortBy : "title";
+    const sortBy = validSortCriteria.includes(res.req?.query?.sortBy) ? res.req.query.sortBy : "title";
+
+    console.log("[DEBUG] loadDataAndRender: Начало загрузки данных");
+    console.log("[DEBUG] sortOrder:", sortOrder, "sortBy:", sortBy, "selectedUser:", selectedUser, "error:", error);
 
     getUsers((err, users) => {
         if (err) {
             console.error("Ошибка при загрузке пользователей:", err.message);
-            return res.status(500).send("Ошибка сервера");
+            if (!res.headersSent) {
+                res.status(500).send("Ошибка сервера");
+            }
+            return;
         }
+        console.log("[DEBUG] Пользователи загружены:", users.length);
         const filteredUsers = users.filter(user => user.Login !== currentUser.Login && user.Login !== "a");
         const executer = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
         getTasksByCreator(currentUser.Login, (err, taskcreators) => {
             if (err) {
                 console.error("Ошибка при получении задач создателя:", err.message);
-                return res.status(500).send("Ошибка сервера");
+                if (!res.headersSent) {
+                    res.status(500).send("Ошибка сервера");
+                }
+                return;
             }
+            console.log("[DEBUG] Задачи создателя загружены:", taskcreators.length);
             getTasksByExecutor(executer, (err, tasksinworks) => {
                 if (err) {
                     console.error("Ошибка при получении задач исполнителя:", err.message);
-                    return res.status(500).send("Ошибка сервера");
+                    if (!res.headersSent) {
+                        res.status(500).send("Ошибка сервера");
+                    }
+                    return;
                 }
+                console.log("[DEBUG] Задачи исполнителя загружены:", tasksinworks.length);
                 if (selectedUser !== "all") {
                     tasksinworks = tasksinworks.filter(task => task.Creator === selectedUser);
                 }
@@ -145,7 +165,12 @@ function loadDataAndRender(res, currentUser, sortOrder, selectedUser, error) {
 
                 loadExecutors(tasksinworks, () => {
                     loadExecutors(taskcreators, () => {
-                        res.render("main", { tasksinworks, users: filteredUsers, currentUser, taskcreators, sortOrder, sortBy, selectedUser, error });
+                        if (!res.headersSent) {
+                            console.log("[DEBUG] Рендеринг страницы main.ejs");
+                            res.render("main", { tasksinworks, users: filteredUsers, currentUser, taskcreators, sortOrder, sortBy, selectedUser, error });
+                        } else {
+                            console.error("[DEBUG] Не могу рендерить, заголовки уже отправлены");
+                        }
                     });
                 });
             });
@@ -232,6 +257,42 @@ router.post("/edit_task", upload.single("file"), async (req, res) => {
     console.log("[DEBUG] req.file:", req.file);
 
     const { taskId, title, description, "start-time": startTime, "end-time": endTime, executors, type } = req.body;
+    const currentUser = res.locals.user;
+
+    if (!title?.trim() || !description?.trim() || !startTime || !endTime || !type?.trim()) {
+        console.log("[DEBUG] Ошибка: не все обязательные поля заполнены");
+        return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Все поля, кроме исполнителей, должны быть заполнены");
+    }
+
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        console.log("[DEBUG] Ошибка: некорректный формат даты");
+        return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Некорректный формат даты");
+    }
+
+    let selectedExecutors;
+    if (!executors) {
+        selectedExecutors = [];
+    } else if (Array.isArray(executors)) {
+        selectedExecutors = executors.filter(e => e !== "");
+    } else if (typeof executors === 'string') {
+        selectedExecutors = executors.trim() === "" ? [] : [executors];
+    } else {
+        selectedExecutors = [];
+    }
+    console.log("[DEBUG] Выбранные исполнители:", selectedExecutors);
+
+    if (selectedExecutors.length === 0) {
+        console.log("[DEBUG] Ошибка: не выбран ни один исполнитель");
+        return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Необходимо выбрать хотя бы одного исполнителя");
+    }
+
+    const currentUserFullName = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
+    if (selectedExecutors.includes(currentUserFullName)) {
+        console.log("[DEBUG] Ошибка: текущий пользователь выбран в качестве исполнителя");
+        return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Вы не можете назначить задачу самому себе");
+    }
 
     try {
         const task = await new Promise((resolve, reject) => {
@@ -268,30 +329,25 @@ router.post("/edit_task", upload.single("file"), async (req, res) => {
             }
         }
 
-        const selectedExecutors = Array.isArray(executors) ? executors.filter(e => e !== "") : [];
         updateTask(taskId, title, description, startTime, endTime, selectedExecutors, filePath, type, (err) => {
             if (err) {
                 console.error("Ошибка при обновлении задачи:", err.message);
                 return res.status(500).send("Ошибка сервера");
             }
-            getTaskExecutors(taskId, (err, executorRows) => {
-                if (err) {
-                    console.error("Ошибка при получении исполнителей:", err.message);
-                    return;
-                }
-                executorRows.forEach((row) => {
-                    const queryUser = 'SELECT id FROM users WHERE CONCAT(Surname, " ", Name, " ", Patronymic) = ?';
-                    querySelect(queryUser, [row.executor], (err, userRows) => {
-                        if (err || userRows.length === 0) {
-                            console.error(`Пользователь ${row.executor} не найден`);
-                            return;
-                        }
-                        const userId = userRows[0].id;
-                        const message = `Задача "${title}" была изменена. Новый дедлайн: ${new Date(endTime).toLocaleDateString()}.`;
-                        sendNotification(userId, message);
-                    });
+
+            selectedExecutors.forEach((executor) => {
+                const queryUser = 'SELECT id FROM users WHERE CONCAT(Surname, " ", Name, " ", Patronymic) = ?';
+                querySelect(queryUser, [executor], (err, userRows) => {
+                    if (err || userRows.length === 0) {
+                        console.error(`Пользователь ${executor} не найден`);
+                        return;
+                    }
+                    const userId = userRows[0].id;
+                    const message = `Задача "${title}" была изменена. Новый дедлайн: ${new Date(endTime).toLocaleDateString()}.`;
+                    sendNotification(userId, message);
                 });
             });
+
             res.redirect("/");
         });
     } catch (err) {

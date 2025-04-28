@@ -71,4 +71,46 @@ document.addEventListener('DOMContentLoaded', () => {
             editDialog.style.display = 'none';
         }
     });
+
+    function validateEditForm() {
+        const title = document.querySelector('#edit_title').value.trim();
+        const description = document.querySelector('#edit_description').value.trim();
+        const startTime = document.querySelector('#edit_start-time').value;
+        const endTime = document.querySelector('#edit_end-time').value;
+        const type = document.querySelector('#edit_type').value.trim();
+        const executors = document.querySelectorAll('#edit_dialog .executor-checkboxes input[name="executors[]"]:checked');
+        const dialogContent = document.querySelector('#edit_dialog .dialog-content');
+        let errorMessage = document.querySelector('#edit_dialog .error-message');
+
+        if (errorMessage) {
+            errorMessage.remove();
+        }
+
+        if (!title || !description || !startTime || !endTime || !type) {
+            errorMessage = document.createElement('p');
+            errorMessage.className = 'error-message text-font text-black';
+            errorMessage.textContent = 'Все поля, кроме исполнителей, должны быть заполнены';
+            dialogContent.insertBefore(errorMessage, dialogContent.children[2]);
+            return false;
+        }
+
+        if (executors.length === 0) {
+            errorMessage = document.createElement('p');
+            errorMessage.className = 'error-message text-font text-black';
+            errorMessage.textContent = 'Необходимо выбрать хотя бы одного исполнителя';
+            dialogContent.insertBefore(errorMessage, dialogContent.children[2]);
+            return false;
+        }
+
+        return true;
+    }
+
+    const editForm = document.querySelector('#edit_dialog form');
+    if (editForm) {
+        editForm.addEventListener('submit', (event) => {
+            if (!validateEditForm()) {
+                event.preventDefault();
+            }
+        });
+    }
 });

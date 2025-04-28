@@ -97,7 +97,6 @@
                                     </option>
                                 <% } %>
                             </select>
-                            <!-- Скрытое поле для сохранения текущих параметров сортировки -->
                             <input type="hidden" name="sort" value="<%= sortOrder %>">
                             <input type="hidden" name="sortBy" value="<%= sortBy %>">
                         </form>
@@ -105,7 +104,6 @@
                             <img src="/icons/sort.png" class="dropbtn">
                             <div class="dropdown-content">
                                 <div class="text-font sort-buttons">
-                                    <!-- Сортировка по названию -->
                                     <a href="/?sortBy=title&sort=asc&user=<%= selectedUser %>" 
                                        class="sort-buttons" 
                                        <%= sortBy === 'title' && sortOrder === 'asc' ? 'style="background-color: #d87236;"' : '' %>>
@@ -116,7 +114,6 @@
                                        <%= sortBy === 'title' && sortOrder === 'desc' ? 'style="background-color: #d87236;"' : '' %>>
                                        Название: от Я до А
                                     </a>
-                                    <!-- Сортировка по дате начала -->
                                     <a href="/?sortBy=start&sort=asc&user=<%= selectedUser %>" 
                                        class="sort-buttons" 
                                        <%= sortBy === 'start' && sortOrder === 'asc' ? 'style="background-color: #d87236;"' : '' %>>
@@ -127,7 +124,6 @@
                                        <%= sortBy === 'start' && sortOrder === 'desc' ? 'style="background-color: #d87236;"' : '' %>>
                                        Дата начала: по убыванию
                                     </a>
-                                    <!-- Сортировка по дедлайну -->
                                     <a href="/?sortBy=end&sort=asc&user=<%= selectedUser %>" 
                                        class="sort-buttons" 
                                        <%= sortBy === 'end' && sortOrder === 'asc' ? 'style="background-color: #d87236;"' : '' %>>
@@ -155,7 +151,7 @@
                                         <p class="text-font">Тип: <%= i.Type %></p>
                                         <% if (i.File_path) { %>
                                             <p class="text-font">
-                                                <a href="/download/<%= getFileName(i.File_path) %>" class="text-font">Скачать прикреплённый файл</a>
+                                                <a href="/uploads/<%= getFileName(i.File_path) %>" class="text-font">Скачать прикреплённый файл</a>
                                             </p>
                                         <% } %>
                                     </div>
@@ -210,7 +206,7 @@
                                         <p class="text-font">Тип: <%= i.Type %></p>
                                         <% if (i.File_path) { %>
                                             <p class="text-font">
-                                                <a href="/download/<%= getFileName(i.File_path) %>" class="text-font">Скачать прикреплённый файл</a>
+                                                <a href="/uploads/<%= getFileName(i.File_path) %>" class="text-font">Скачать прикреплённый файл</a>
                                             </p>
                                         <% } %>
                                         <% if (i.Date_updated) { %>
@@ -268,7 +264,7 @@
                     <% } %>
 
                     <div id="edit_dialog" class="dialog">
-                        <form action="/edit_task" method="post" enctype="multipart/form-data">
+                        <form action="/edit_task" method="post" enctype="multipart/form-data" onsubmit="return validateEditForm()">
                             <div class="dialog-content">
                                 <span class="close-btn" id="close_edit_dialog">×</span>
                                 <p class="text-font text-black">Редактировать задачу</p>

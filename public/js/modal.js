@@ -81,11 +81,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const executors = document.querySelectorAll('#edit_dialog .executor-checkboxes input[name="executors[]"]:checked');
         const dialogContent = document.querySelector('#edit_dialog .dialog-content');
         let errorMessage = document.querySelector('#edit_dialog .error-message');
-
+    
         if (errorMessage) {
             errorMessage.remove();
         }
-
+    
         if (!title || !description || !startTime || !endTime || !type) {
             errorMessage = document.createElement('p');
             errorMessage.className = 'error-message text-font text-black';
@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dialogContent.insertBefore(errorMessage, dialogContent.children[2]);
             return false;
         }
-
+    
         if (executors.length === 0) {
             errorMessage = document.createElement('p');
             errorMessage.className = 'error-message text-font text-black';
@@ -101,7 +101,17 @@ document.addEventListener('DOMContentLoaded', () => {
             dialogContent.insertBefore(errorMessage, dialogContent.children[2]);
             return false;
         }
-
+    
+        const now = new Date();
+        const endDate = new Date(endTime);
+        if (endDate < now) {
+            errorMessage = document.createElement('p');
+            errorMessage.className = 'error-message text-font text-black';
+            errorMessage.textContent = 'Дата окончания не может быть в прошлом';
+            dialogContent.insertBefore(errorMessage, dialogContent.children[2]);
+            return false;
+        }
+    
         return true;
     }
 

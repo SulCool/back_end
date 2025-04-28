@@ -271,6 +271,12 @@ router.post("/edit_task", upload.single("file"), async (req, res) => {
         return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Некорректный формат даты");
     }
 
+    const now = new Date();
+    if (endDate < now) {
+        console.log("[DEBUG] Ошибка: дата окончания в прошлом");
+        return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Дата окончания не может быть в прошлом");
+    }
+
     let selectedExecutors;
     if (!executors) {
         selectedExecutors = [];

@@ -59,6 +59,15 @@ router.get("/", (req, res) => {
             return res.status(500).send("Ошибка сервера");
         }
         const filteredUsers = users.filter(user => user.Login !== currentUser.Login && user.Login !== "a");
+
+        let selectedUserFullName = null;
+        if (selectedUser !== "all") {
+            const selectedUserData = users.find(user => user.Login === selectedUser);
+            if (selectedUserData) {
+                selectedUserFullName = `${selectedUserData.Surname} ${selectedUserData.Name} ${selectedUserData.Patronymic}`;
+            }
+        }
+
         let executer = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
         getTasksByCreator(currentUser.Login, (err, taskcreators) => {
             if (err) {
@@ -69,9 +78,6 @@ router.get("/", (req, res) => {
                 if (err) {
                     console.error("Ошибка при получении задач исполнителя:", err.message);
                     return res.status(500).send("Ошибка сервера");
-                }
-                if (selectedUser !== "all") {
-                    tasksinworks = tasksinworks.filter(task => task.Creator === selectedUser);
                 }
 
                 const sortTasks = (tasks) => {
@@ -95,11 +101,12 @@ router.get("/", (req, res) => {
                     });
                 };
 
-                sortTasks(tasksinworks);
-                sortTasks(taskcreators);
-
                 const loadExecutors = (tasks, cb) => {
                     let completed = 0;
+                    if (tasks.length === 0) {
+                        cb();
+                        return;
+                    }
                     tasks.forEach(task => {
                         getTaskExecutors(task.id, (err, executors) => {
                             task.executors = err ? [] : executors.map(e => e.executor);
@@ -107,11 +114,21 @@ router.get("/", (req, res) => {
                             if (completed === tasks.length) cb();
                         });
                     });
-                    if (tasks.length === 0) cb();
                 };
 
                 loadExecutors(tasksinworks, () => {
                     loadExecutors(taskcreators, () => {
+                        if (selectedUser !== "all" && selectedUserFullName) {
+                            tasksinworks = tasksinworks.filter(task => task.executors.includes(selectedUserFullName));
+                        }
+
+                        if (selectedUser !== "all" && selectedUserFullName) {
+                            taskcreators = taskcreators.filter(task => task.executors.includes(selectedUserFullName));
+                        }
+
+                        sortTasks(tasksinworks);
+                        sortTasks(taskcreators);
+
                         res.render("main", { tasksinworks, users: filteredUsers, currentUser, taskcreators, sortOrder, sortBy, selectedUser });
                     });
                 });

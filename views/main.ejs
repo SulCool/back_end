@@ -99,11 +99,11 @@
                     <div class="filter-container">
                         <form action="/" method="GET">
                             <select class="dropbtn selector text-black text-font" id="userSelector" name="user"
-                                onchange="this.form.submit()">
+                                    onchange="this.form.submit()">
                                 <option class="text-font selector1 text-white" value="all">Все</option>
                                 <% for (let i of users.filter(user => user.Login !== currentUser.Login)) { %>
                                     <option class="text-font selector1 text-white" value="<%= i.Login %>"
-                                        <%= i.Login === selectedUser ? 'selected' : '' %>>
+                                            <%= i.Login === selectedUser ? 'selected' : '' %>>
                                         <%= i.Surname %> <%= i.Name %> <%= i.Patronymic %>
                                     </option>
                                 <% } %>

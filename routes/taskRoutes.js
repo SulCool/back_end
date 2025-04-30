@@ -98,6 +98,15 @@ function loadDataAndRender(res, currentUser, sortOrder, selectedUser, error) {
         }
         console.log("[DEBUG] Пользователи загружены:", users.length);
         const filteredUsers = users.filter(user => user.Login !== currentUser.Login && user.Login !== "a");
+        
+        let selectedUserFullName = null;
+        if (selectedUser !== "all") {
+            const selectedUserData = users.find(user => user.Login === selectedUser);
+            if (selectedUserData) {
+                selectedUserFullName = `${selectedUserData.Surname} ${selectedUserData.Name} ${selectedUserData.Patronymic}`;
+            }
+        }
+
         const executer = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
         getTasksByCreator(currentUser.Login, (err, taskcreators) => {
             if (err) {
@@ -117,9 +126,6 @@ function loadDataAndRender(res, currentUser, sortOrder, selectedUser, error) {
                     return;
                 }
                 console.log("[DEBUG] Задачи исполнителя загружены:", tasksinworks.length);
-                if (selectedUser !== "all") {
-                    tasksinworks = tasksinworks.filter(task => task.Creator === selectedUser);
-                }
 
                 const sortTasks = (tasks) => {
                     tasks.sort((a, b) => {
@@ -142,11 +148,12 @@ function loadDataAndRender(res, currentUser, sortOrder, selectedUser, error) {
                     });
                 };
 
-                sortTasks(tasksinworks);
-                sortTasks(taskcreators);
-
                 const loadExecutors = (tasks, cb) => {
                     let completed = 0;
+                    if (tasks.length === 0) {
+                        cb();
+                        return;
+                    }
                     tasks.forEach(task => {
                         getTaskExecutors(task.id, (err, executors) => {
                             task.executors = err ? [] : executors.map(e => e.executor);
@@ -154,11 +161,21 @@ function loadDataAndRender(res, currentUser, sortOrder, selectedUser, error) {
                             if (completed === tasks.length) cb();
                         });
                     });
-                    if (tasks.length === 0) cb();
                 };
 
                 loadExecutors(tasksinworks, () => {
                     loadExecutors(taskcreators, () => {
+                        if (selectedUser !== "all" && selectedUserFullName) {
+                            tasksinworks = tasksinworks.filter(task => task.executors.includes(selectedUserFullName));
+                        }
+
+                        if (selectedUser !== "all" && selectedUserFullName) {
+                            taskcreators = taskcreators.filter(task => task.executors.includes(selectedUserFullName));
+                        }
+
+                        sortTasks(tasksinworks);
+                        sortTasks(taskcreators);
+
                         if (!res.headersSent) {
                             console.log("[DEBUG] Рендеринг страницы main.ejs");
                             res.render("main", { tasksinworks, users: filteredUsers, currentUser, taskcreators, sortOrder, sortBy, selectedUser, error });

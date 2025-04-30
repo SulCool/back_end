@@ -53,5 +53,15 @@ function validateAddForm() {
         return false;
     }
 
+    const now = new Date();
+    const endDate = new Date(endTime);
+    if (endDate <= now) {
+        errorMessage = document.createElement('p');
+        errorMessage.className = 'error-message text-font text-black';
+        errorMessage.textContent = 'Дата окончания должна быть в будущем';
+        dialogContent.insertBefore(errorMessage, dialogContent.children[2]); 
+        return false;
+    }
+
     return true;
 }

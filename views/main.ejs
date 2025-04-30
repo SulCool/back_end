@@ -33,6 +33,17 @@
         </header>
         <main class="main">
             <div class="main_header">
+                <% 
+                function formatLocalDateTime(date) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    return `${year}-${month}-${day}T${hours}:${minutes}`;
+                }
+                const currentDateTime = formatLocalDateTime(new Date());
+                %>
                 <button class="btn" id="open_add_dialog">
                     <span class="transition"></span>
                     <span class="gradient"></span>
@@ -49,11 +60,11 @@
                             <input name="title" type="text" placeholder="Введите имя" class="text-input" required>
                             <textarea name="description" placeholder="Введите описание" class="text-input" required></textarea>
                             <input type="datetime-local" id="start-time" name="start-time"
-                                value="<%= (new Date()).toISOString().slice(0, 16) %>"
-                                min="<%= (new Date()).toISOString().slice(0, 16) %>" required />
+                                value="<%= currentDateTime %>"
+                                min="<%= currentDateTime %>" required />
                             <input type="datetime-local" id="end-time" name="end-time"
-                                value="<%= (new Date()).toISOString().slice(0, 16) %>"
-                                min="<%= (new Date()).toISOString().slice(0, 16) %>" required />
+                                value="<%= currentDateTime %>"
+                                min="<%= currentDateTime %>" required />
                             <label class="text-font text-black">Кому адресовано (выберите исполнителей):</label>
                             <div class="executor-checkboxes">
                                 <input type="hidden" name="executors[]" value="">
@@ -156,10 +167,10 @@
                                         <% } %>
                                     </div>
                                     <div class="footer">
-                                        <p class="text-font">Дата начала: <%= (new Date(i.Date_start)).toLocaleDateString() %></p>
+                                        <p class="text-font">Дата начала: <%= formatLocalDateTime(new Date(i.Date_start)).split('T')[0] %></p>
                                     </div>
                                     <div class="footer">
-                                        <p class="text-font">Срок: <%= (new Date(i.Date_end)).toLocaleDateString() %></p>
+                                        <p class="text-font">Срок: <%= formatLocalDateTime(new Date(i.Date_end)).split('T')[0] %></p>
                                     </div>
                                     <div class="footer">
                                         <p class="text-font">Исполнители: <%= i.executors.join(', ') || 'Не назначены' %></p>
@@ -210,7 +221,7 @@
                                             </p>
                                         <% } %>
                                         <% if (i.Date_updated) { %>
-                                            <p class="text-font">Изменено: <%= new Date(i.Date_updated).toLocaleDateString() %></p>
+                                            <p class="text-font">Изменено: <%= formatLocalDateTime(new Date(i.Date_updated)).split('T')[0] %></p>
                                         <% } %>
                                         <input type="hidden" class="task-data" data-task-id="<%= i.id %>"
                                                data-title="<%= i.Title %>"
@@ -221,10 +232,10 @@
                                                data-type="<%= i.Type %>">
                                     </div>
                                     <div class="footer">
-                                        <p class="text-font">Дата начала: <%= (new Date(i.Date_start)).toLocaleDateString() %></p>
+                                        <p class="text-font">Дата начала: <%= formatLocalDateTime(new Date(i.Date_start)).split('T')[0] %></p>
                                     </div>
                                     <div class="footer">
-                                        <p class="text-font">Срок: <%= (new Date(i.Date_end)).toLocaleDateString() %></p>
+                                        <p class="text-font">Срок: <%= formatLocalDateTime(new Date(i.Date_end)).split('T')[0] %></p>
                                     </div>
                                     <div class="footer">
                                         <p class="text-font">Исполнители: <%= i.executors.join(', ') || 'Не назначены' %></p>
@@ -233,7 +244,7 @@
                                         <div class="text-font">
                                             Статус:
                                             <% if (i.Date_ended) { %>
-                                                Завершено (<%= new Date(i.Date_ended).toLocaleDateString() %>)
+                                                Завершено (<%= formatLocalDateTime(new Date(i.Date_ended)).split('T')[0] %>)
                                             <% } else if (new Date(i.Date_end) < new Date()) { %>
                                                 Просрочено
                                             <% } else { %>
@@ -262,7 +273,6 @@
                     <% } else { %>
                         <div class="text-font">Вы не создали задач</div>
                     <% } %>
-
                     <div id="edit_dialog" class="dialog">
                         <form action="/edit_task" method="post" enctype="multipart/form-data" onsubmit="return validateEditForm()">
                             <div class="dialog-content">
@@ -272,9 +282,9 @@
                                 <input name="title" id="edit_title" type="text" placeholder="Введите имя" class="text-input" required>
                                 <textarea name="description" id="edit_description" placeholder="Введите описание" class="text-input" required></textarea>
                                 <input type="datetime-local" id="edit_start-time" name="start-time" class="text-input"
-                                       min="<%= (new Date()).toISOString().slice(0, 16) %>" required>
+                                       min="<%= currentDateTime %>" required>
                                 <input type="datetime-local" id="edit_end-time" name="end-time" class="text-input"
-                                       min="<%= (new Date()).toISOString().slice(0, 16) %>" required>
+                                       min="<%= currentDateTime %>" required>
                                 <label class="text-font text-black">Кому адресовано (выберите исполнителей):</label>
                                 <div class="executor-checkboxes">
                                     <input type="hidden" name="executors[]" value="">

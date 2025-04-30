@@ -18,21 +18,6 @@ router.post("/add_task", upload.single("file"), (req, res) => {
     const { title, description, "start-time": startTime, "end-time": endTime, executors, type } = req.body;
     const currentUser = res.locals.user;
 
-    console.log("[DEBUG] Полученные данные формы:");
-    console.log("title:", title);
-    console.log("description:", description);
-    console.log("startTime:", startTime);
-    console.log("endTime:", endTime);
-    console.log("executors:", executors);
-    console.log("type:", type);
-
-    console.log("[DEBUG] Значения после .trim():");
-    console.log("title.trim():", title?.trim());
-    console.log("description.trim():", description?.trim());
-    console.log("startTime:", startTime);
-    console.log("endTime:", endTime);
-    console.log("type.trim():", type?.trim());
-
     if (!title?.trim() || !description?.trim() || !startTime || !endTime || !type?.trim()) {
         console.log("[DEBUG] Ошибка: не все обязательные поля заполнены");
         return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Все поля, кроме исполнителей, должны быть заполнены");
@@ -43,6 +28,15 @@ router.post("/add_task", upload.single("file"), (req, res) => {
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
         console.log("[DEBUG] Ошибка: некорректный формат даты");
         return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Некорректный формат даты");
+    }
+
+    const startTimeUTC = startDate.toISOString();
+    const endTimeUTC = endDate.toISOString();
+
+    const now = new Date();
+    if (endDate <= now) {
+        console.log("[DEBUG] Ошибка: дата окончания должна быть в будущем");
+        return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Дата окончания должна быть в будущем");
     }
 
     const selectedExecutors = Array.isArray(executors) ? executors.filter(e => e !== "") : [];
@@ -59,7 +53,7 @@ router.post("/add_task", upload.single("file"), (req, res) => {
 
     const filePath = req.file ? `/uploads/${req.file.filename}` : null;
     const userName = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
-    addTask(title, description, startTime, endTime, currentUser.Login, selectedExecutors, userName, filePath, type, (err, taskId) => {
+    addTask(title, description, startTimeUTC, endTimeUTC, currentUser.Login, selectedExecutors, userName, filePath, type, (err, taskId) => {
         if (err) {
             console.error("Ошибка при добавлении задачи:", err.message);
             return res.status(500).send("Ошибка сервера");
@@ -72,7 +66,7 @@ router.post("/add_task", upload.single("file"), (req, res) => {
                     return;
                 }
                 const userId = userRows[0].id;
-                const message = `Вам назначена задача "${title}". Дедлайн: ${new Date(endTime).toLocaleDateString()}.`;
+                const message = `Вам назначена задача "${title}". Дедлайн: ${new Date(endTimeUTC).toLocaleDateString()}.`;
                 sendNotification(userId, message);
             });
         });
@@ -271,6 +265,9 @@ router.post("/edit_task", upload.single("file"), async (req, res) => {
         return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Некорректный формат даты");
     }
 
+    const startTimeUTC = startDate.toISOString();
+    const endTimeUTC = endDate.toISOString();
+
     const now = new Date();
     if (endDate < now) {
         console.log("[DEBUG] Ошибка: дата окончания в прошлом");
@@ -335,7 +332,7 @@ router.post("/edit_task", upload.single("file"), async (req, res) => {
             }
         }
 
-        updateTask(taskId, title, description, startTime, endTime, selectedExecutors, filePath, type, (err) => {
+        updateTask(taskId, title, description, startTimeUTC, endTimeUTC, selectedExecutors, filePath, type, (err) => {
             if (err) {
                 console.error("Ошибка при обновлении задачи:", err.message);
                 return res.status(500).send("Ошибка сервера");
@@ -349,7 +346,7 @@ router.post("/edit_task", upload.single("file"), async (req, res) => {
                         return;
                     }
                     const userId = userRows[0].id;
-                    const message = `Задача "${title}" была изменена. Новый дедлайн: ${new Date(endTime).toLocaleDateString()}.`;
+                    const message = `Задача "${title}" была изменена. Новый дедлайн: ${new Date(endTimeUTC).toLocaleDateString()}.`;
                     sendNotification(userId, message);
                 });
             });

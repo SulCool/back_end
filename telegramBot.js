@@ -1,7 +1,7 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { queryRun, querySelect, getUserByLogin } from './database/bd.js';
 
-const token = '';
+const token = '7659395380:AAHuCFHNlF5CoxsaNgFecMbwQHvkrP2zkTU';
 const bot = new TelegramBot(token, { polling: true });
 
 bot.onText(/\/start (.+)/, (msg, match) => {

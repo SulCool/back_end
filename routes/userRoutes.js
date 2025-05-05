@@ -58,7 +58,7 @@ router.get("/", (req, res) => {
             console.error("Ошибка при загрузке пользователей:", err.message);
             return res.status(500).send("Ошибка сервера");
         }
-        const filteredUsers = users.filter(user => user.Login !== currentUser.Login && user.Login !== "a");
+        const filteredUsers = users.filter(user => user.Login !== "a");
 
         let selectedUserFullName = null;
         if (selectedUser !== "all") {

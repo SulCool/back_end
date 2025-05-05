@@ -69,7 +69,7 @@
                             <div class="executor-checkboxes">
                                 <input type="hidden" name="executors[]" value="">
                                 <% if (users.length > 0) { %>
-                                    <% for (let i of users.filter(user => user.Login !== currentUser.Login)) { %>
+                                    <% for (let i of users) { %>
                                         <label class="checkbox-label text-font text-black">
                                             <input type="checkbox" name="executors[]" value="<%= i.Surname %> <%= i.Name %> <%= i.Patronymic %>">
                                             <%= i.Surname %> <%= i.Name %> <%= i.Patronymic %>
@@ -98,10 +98,9 @@
                 <div class="main_body">
                     <div class="filter-container">
                         <form action="/" method="GET">
-                            <select class="dropbtn selector text-black text-font" id="userSelector" name="user"
-                                    onchange="this.form.submit()">
+                            <select class="dropbtn selector text-black text-font" id="userSelector" name="user" onchange="this.form.submit()">
                                 <option class="text-font selector1 text-white" value="all">Все</option>
-                                <% for (let i of users.filter(user => user.Login !== currentUser.Login)) { %>
+                                <% for (let i of users) { %>
                                     <option class="text-font selector1 text-white" value="<%= i.Login %>"
                                             <%= i.Login === selectedUser ? 'selected' : '' %>>
                                         <%= i.Surname %> <%= i.Name %> <%= i.Patronymic %>
@@ -289,7 +288,7 @@
                                 <div class="executor-checkboxes">
                                     <input type="hidden" name="executors[]" value="">
                                     <% if (users.length > 0) { %>
-                                        <% for (let i of users.filter(user => user.Login !== currentUser.Login)) { %>
+                                        <% for (let i of users) { %>
                                             <label class="checkbox-label text-font text-black">
                                                 <input type="checkbox" name="executors[]" value="<%= i.Surname %> <%= i.Name %> <%= i.Patronymic %>">
                                                 <%= i.Surname %> <%= i.Name %> <%= i.Patronymic %>

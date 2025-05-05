@@ -39,16 +39,12 @@ router.post("/add_task", upload.single("file"), (req, res) => {
         return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Дата окончания должна быть в будущем");
     }
 
-    const selectedExecutors = Array.isArray(executors) ? executors.filter(e => e !== "") : [];
+    const selectedExecutors = Array.isArray(executors) ? executors.filter(e => e !== "") : (executors ? [executors] : []);
     console.log("[DEBUG] Выбранные исполнители:", selectedExecutors);
 
     if (selectedExecutors.length === 0) {
         console.log("[DEBUG] Ошибка: не выбран ни один исполнитель");
         return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Необходимо выбрать хотя бы одного исполнителя");
-    }
-
-    if (selectedExecutors.includes(currentUser.Login)) {
-        return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Вы не можете назначить задачу самому себе");
     }
 
     const filePath = req.file ? `/uploads/${req.file.filename}` : null;
@@ -306,12 +302,6 @@ router.post("/edit_task", upload.single("file"), async (req, res) => {
     if (selectedExecutors.length === 0) {
         console.log("[DEBUG] Ошибка: не выбран ни один исполнитель");
         return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Необходимо выбрать хотя бы одного исполнителя");
-    }
-
-    const currentUserFullName = `${currentUser.Surname} ${currentUser.Name} ${currentUser.Patronymic}`;
-    if (selectedExecutors.includes(currentUserFullName)) {
-        console.log("[DEBUG] Ошибка: текущий пользователь выбран в качестве исполнителя");
-        return loadDataAndRender(res, currentUser, req.query.sort || "asc", req.query.user || "all", "Вы не можете назначить задачу самому себе");
     }
 
     try {

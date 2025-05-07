@@ -8,17 +8,18 @@ const token = '';
 const bot = new TelegramBot(token, { polling: true });
 
 const showMenu = (chatId) => {
+    console.log(`Showing menu for chatId: ${chatId}`);
     const options = {
         reply_markup: {
             keyboard: [
                 [{ text: '/start' }, { text: '/tasks' }],
-                [{ text: '/unlink' }]
+                [{ text: '/profile' }, { text: '/unlink' }],
             ],
             resize_keyboard: true,
             one_time_keyboard: false
         }
     };
-    bot.sendMessage(chatId, 'Выбери команду:', options);
+    bot.sendMessage(chatId, 'Выберите действие:', options);
 };
 
 const requestLogin = (chatId) => {
@@ -33,6 +34,57 @@ const requestLogin = (chatId) => {
     bot.sendMessage(chatId, 'Отправьте теперь мне свой логин:', options);
 };
 
+bot.onText(/\/profile/, (msg) => {
+    const chatId = msg.chat.id;
+    querySelect(
+        'SELECT user_id FROM telegram_users WHERE chat_id = ?',
+        [chatId],
+        (err, userRows) => {
+            if (err) {
+                console.error('Ошибка при проверке регистрации:', err.message);
+                bot.sendMessage(chatId, 'Произошла ошибка. Попробуй позже.');
+                showMenu(chatId);
+                return;
+            }
+
+            if (userRows.length === 0) {
+                bot.sendMessage(chatId, 'Ты не привязан к пользователю. Используй /start для привязки.');
+                showMenu(chatId);
+                return;
+            }
+
+            const userId = userRows[0].user_id;
+            querySelect(
+                'SELECT Login, Surname, Name, Patronymic, Role, Post FROM users WHERE id = ?',
+                [userId],
+                (err, userRows) => {
+                    if (err) {
+                        console.error('Ошибка при получении данных пользователя:', err.message);
+                        bot.sendMessage(chatId, 'Ошибка при получении данных.');
+                        showMenu(chatId);
+                        return;
+                    }
+
+                    if (userRows.length === 0) {
+                        bot.sendMessage(chatId, 'Пользователь не найден.');
+                        showMenu(chatId);
+                        return;
+                    }
+
+                    const user = userRows[0];
+                    const profileMessage = `Твоя учётная запись:\n` +
+                        `Логин: ${user.Login}\n` +
+                        `ФИО: ${user.Surname} ${user.Name} ${user.Patronymic || ''}\n` +
+                        `Роль: ${user.Role}\n` +
+                        `Должность: ${user.Post || 'Не указана'}`;
+
+                    bot.sendMessage(chatId, profileMessage);
+                    showMenu(chatId);
+                }
+            );
+        }
+    );
+});
 
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
